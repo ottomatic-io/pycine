@@ -26,15 +26,64 @@ from docopt import docopt
 import cine
 
 
-def gen_mask(pattern, c, image):
-    def color_kern(pattern, c):
-        return np.array([[pattern[0] != c, pattern[1] != c],
-                         [pattern[2] != c, pattern[3] != c]])
+def read_header(myfile):
+    with open(myfile, 'rb') as f:
+        header = {}
+        header['cinefileheader'] = cine.CINEFILEHEADER()
+        header['bitmapinfoheader'] = cine.BITMAPINFOHEADER()
+        header['setup'] = cine.SETUP()
+        f.readinto(header['cinefileheader'])
+        f.readinto(header['bitmapinfoheader'])
+        f.readinto(header['setup'])
 
-    (h, w) = image.shape[:2]
-    cells = np.ones((h/2, w/2))
+        # header_length = ctypes.sizeof(header['cinefileheader'])
+        # bitmapinfo_length = ctypes.sizeof(header['bitmapinfoheader'])
 
-    return np.kron(cells, color_kern(pattern, c))
+        f.seek(header['cinefileheader'].OffImageOffsets)
+        header['pImage'] = struct.unpack('{}q'.format(header['cinefileheader'].ImageCount),
+                                         f.read(header['cinefileheader'].ImageCount * 8))
+
+    return header
+
+
+def frame_reader(myfile, header, start_frame=1, count=None):
+    frame = start_frame
+    if not count:
+        count = header['cinefileheader'].ImageCount
+
+    with open(myfile, 'rb') as f:
+        while count:
+            frame_index = frame - 1
+            print "Reading frame {}".format(frame)
+
+            f.seek(header['pImage'][frame_index])
+
+            AnnotationSize = struct.unpack('I', f.read(4))[0]
+            Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
+                                       f.read((AnnotationSize - 8) / 8))
+            header["Annotation"] = Annotation
+
+            ImageSize = struct.unpack('I', f.read(4))[0]
+
+            data = f.read(ImageSize)
+
+            raw_image = create_raw_array(data, header)
+
+            yield raw_image
+            frame += 1
+            count -= 1
+
+
+def read_frames(myfile, start_frame=1, count=None):
+    header = read_header(myfile)
+    if header['bitmapinfoheader'].biCompression:
+        bpp = 12
+    else:
+        bpp = header['setup'].RealBPP
+
+    raw_images = frame_reader(myfile, header, start_frame=start_frame, count=count)
+
+    return raw_images, header['setup'], bpp
 
 
 def unpack_10bit(data, width, height):
@@ -49,40 +98,21 @@ def unpack_10bit(data, width, height):
     return unpacked
 
 
-def whitebalance_raw(raw, setup, pattern):
-    cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
-    whitebalance = np.diag(cmCalib)
+def create_raw_array(data, header):
+    width, height = header['bitmapinfoheader'].biWidth, header['bitmapinfoheader'].biHeight
 
-    print "WBGain: ", np.asarray(setup.WBGain)
-    print "WBView: ", np.asarray(setup.WBView)
-    print "fWBTemp: ", setup.fWBTemp
-    print "fWBCc: ", setup.fWBCc
-    print "cmCalib: ", cmCalib
-    print "whitebalance: ", whitebalance
+    if header['bitmapinfoheader'].biCompression:
+        raw_image = unpack_10bit(data, width, height)
+        raw_image = linLUT[raw_image].astype(np.uint16)
+        raw_image = np.interp(raw_image, [64, 4064], [0, 2**12-1]).astype(np.uint16)
+    else:
+        raw_image = np.frombuffer(data, dtype='uint16')
+        raw_image.shape = (height, width)
+        raw_image = np.flipud(raw_image)
+        raw_image = np.interp(raw_image, [header['setup'].BlackLevel, header['setup'].WhiteLevel],
+                                         [0, 2**header['setup'].RealBPP-1]).astype(np.uint16)
 
-    # FIXME: maybe use .copy()
-    wb_raw = np.ma.MaskedArray(raw)
-
-    wb_raw.mask = gen_mask(pattern, 'r', wb_raw)
-    wb_raw *= whitebalance[0]
-    wb_raw.mask = gen_mask(pattern, 'g', wb_raw)
-    wb_raw *= whitebalance[1]
-    wb_raw.mask = gen_mask(pattern, 'b', wb_raw)
-    wb_raw *= whitebalance[2]
-
-    wb_raw.mask = np.ma.nomask
-
-    return wb_raw
-
-
-def apply_gamma(rgb_image, setup):
-    # FIXME: using 2.2 for now because 8.0 from the sample image seems way out of place
-    rgb_image **= (1/2.2)
-    # rgb_image **= (1/setup.fGamma)
-    # rgb_image[:,:,0] **= (1/(setup.fGammaR + setup.fGamma))
-    # rgb_image[:,:,2] **= (1/(setup.fGammaB + setup.fGamma))
-
-    return rgb_image
+    return raw_image
 
 
 def color_pipeline(raw, setup, bpp=12):
@@ -164,6 +194,53 @@ def color_pipeline(raw, setup, bpp=12):
     return rgb_image
 
 
+def whitebalance_raw(raw, setup, pattern):
+    cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
+    whitebalance = np.diag(cmCalib)
+
+    print "WBGain: ", np.asarray(setup.WBGain)
+    print "WBView: ", np.asarray(setup.WBView)
+    print "fWBTemp: ", setup.fWBTemp
+    print "fWBCc: ", setup.fWBCc
+    print "cmCalib: ", cmCalib
+    print "whitebalance: ", whitebalance
+
+    # FIXME: maybe use .copy()
+    wb_raw = np.ma.MaskedArray(raw)
+
+    wb_raw.mask = gen_mask(pattern, 'r', wb_raw)
+    wb_raw *= whitebalance[0]
+    wb_raw.mask = gen_mask(pattern, 'g', wb_raw)
+    wb_raw *= whitebalance[1]
+    wb_raw.mask = gen_mask(pattern, 'b', wb_raw)
+    wb_raw *= whitebalance[2]
+
+    wb_raw.mask = np.ma.nomask
+
+    return wb_raw
+
+
+def gen_mask(pattern, c, image):
+    def color_kern(pattern, c):
+        return np.array([[pattern[0] != c, pattern[1] != c],
+                         [pattern[2] != c, pattern[3] != c]])
+
+    (h, w) = image.shape[:2]
+    cells = np.ones((h/2, w/2))
+
+    return np.kron(cells, color_kern(pattern, c))
+
+
+def apply_gamma(rgb_image, setup):
+    # FIXME: using 2.2 for now because 8.0 from the sample image seems way out of place
+    rgb_image **= (1/2.2)
+    # rgb_image **= (1/setup.fGamma)
+    # rgb_image[:,:,0] **= (1/(setup.fGammaR + setup.fGamma))
+    # rgb_image[:,:,2] **= (1/(setup.fGammaB + setup.fGamma))
+
+    return rgb_image
+
+
 def resize(rgb_image, new_width):
     height, width = rgb_image.shape[:2]
     new_height = int(new_width * (float(height) / width))
@@ -180,83 +257,6 @@ def display(image_8bit):
 
 def save(rgb_image, outfile):
     cv2.imwrite(outfile, rgb_image * 255)
-
-
-def read_header(myfile):
-    with open(myfile, 'rb') as f:
-        header = {}
-        header['cinefileheader'] = cine.CINEFILEHEADER()
-        header['bitmapinfoheader'] = cine.BITMAPINFOHEADER()
-        header['setup'] = cine.SETUP()
-        f.readinto(header['cinefileheader'])
-        f.readinto(header['bitmapinfoheader'])
-        f.readinto(header['setup'])
-
-        # header_length = ctypes.sizeof(header['cinefileheader'])
-        # bitmapinfo_length = ctypes.sizeof(header['bitmapinfoheader'])
-
-        f.seek(header['cinefileheader'].OffImageOffsets)
-        header['pImage'] = struct.unpack('{}q'.format(header['cinefileheader'].ImageCount),
-                                         f.read(header['cinefileheader'].ImageCount * 8))
-
-    return header
-
-
-def create_raw_array(data, header):
-    width, height = header['bitmapinfoheader'].biWidth, header['bitmapinfoheader'].biHeight
-
-    if header['bitmapinfoheader'].biCompression:
-        raw_image = unpack_10bit(data, width, height)
-        raw_image = linLUT[raw_image].astype(np.uint16)
-        raw_image = np.interp(raw_image, [64, 4064], [0, 2**12-1]).astype(np.uint16)
-    else:
-        raw_image = np.frombuffer(data, dtype='uint16')
-        raw_image.shape = (height, width)
-        raw_image = np.flipud(raw_image)
-        raw_image = np.interp(raw_image, [header['setup'].BlackLevel, header['setup'].WhiteLevel],
-                                         [0, 2**header['setup'].RealBPP-1]).astype(np.uint16)
-
-    return raw_image
-
-
-def frame_reader(myfile, header, start_frame=1, count=None):
-    frame = start_frame
-    if not count:
-        count = header['cinefileheader'].ImageCount
-
-    with open(myfile, 'rb') as f:
-        while count:
-            frame_index = frame - 1
-            print "Reading frame {}".format(frame)
-
-            f.seek(header['pImage'][frame_index])
-
-            AnnotationSize = struct.unpack('I', f.read(4))[0]
-            Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
-                                       f.read((AnnotationSize - 8) / 8))
-            header["Annotation"] = Annotation
-
-            ImageSize = struct.unpack('I', f.read(4))[0]
-
-            data = f.read(ImageSize)
-
-            raw_image = create_raw_array(data, header)
-
-            yield raw_image
-            frame += 1
-            count -= 1
-
-
-def read_frames(myfile, start_frame=1, count=None):
-    header = read_header(myfile)
-    if header['bitmapinfoheader'].biCompression:
-        bpp = 12
-    else:
-        bpp = header['setup'].RealBPP
-
-    raw_images = frame_reader(myfile, header, start_frame=start_frame, count=count)
-
-    return raw_images, header['setup'], bpp
 
 
 # TODO: make LUT function
