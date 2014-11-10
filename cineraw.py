@@ -176,48 +176,55 @@ def save(rgb_image, outfile):
     cv2.imwrite(outfile, rgb_image * 255)
 
 
-def readframe(myfile, frame=0):
+def readheader(myfile):
     with open(myfile, 'rb') as f:
-        cinefileheader = cine.CINEFILEHEADER()
-        bitmapinfoheader = cine.BITMAPINFOHEADER()
-        setup = cine.SETUP()
-        f.readinto(cinefileheader)
-        f.readinto(bitmapinfoheader)
-        f.readinto(setup)
+        header = {}
+        header['cinefileheader'] = cine.CINEFILEHEADER()
+        header['bitmapinfoheader'] = cine.BITMAPINFOHEADER()
+        header['setup'] = cine.SETUP()
+        f.readinto(header['cinefileheader'])
+        f.readinto(header['bitmapinfoheader'])
+        f.readinto(header['setup'])
 
-        # header_length = ctypes.sizeof(cinefileheader)
-        # bitmapinfo_length = ctypes.sizeof(bitmapinfoheader)
+        # header_length = ctypes.sizeof(header['cinefileheader'])
+        # bitmapinfo_length = ctypes.sizeof(header['bitmapinfoheader'])
 
-        width, height = bitmapinfoheader.biWidth, bitmapinfoheader.biHeight
+        f.seek(header['cinefileheader'].OffImageOffsets)
+        header['pImage'] = struct.unpack('{}q'.format(header['cinefileheader'].ImageCount),
+                                         f.read(header['cinefileheader'].ImageCount * 8))
 
-        f.seek(cinefileheader.OffImageOffsets)
-        pImage = struct.unpack('{}q'.format(cinefileheader.ImageCount),
-                               f.read(cinefileheader.ImageCount * 8))
+    return header
 
-        # seek to first frame
-        f.seek(pImage[frame])
+
+def readframe(myfile, frame=0):
+    header = readheader(myfile)
+
+    with open(myfile, 'rb') as f:
+        f.seek(header['pImage'][frame])
 
         AnnotationSize = struct.unpack('I', f.read(4))[0]
         Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
                                    f.read((AnnotationSize - 8) / 8))
         ImageSize = struct.unpack('I', f.read(4))[0]
 
+        width, height = header['bitmapinfoheader'].biWidth, header['bitmapinfoheader'].biHeight
+
         data = f.read(ImageSize)
 
-        if bitmapinfoheader.biCompression:
-            raw_image = unpack_10bit(data, width, height)
-            raw_image = linLUT[raw_image].astype(np.uint16)
-            raw_image = np.interp(raw_image, [64, 4064], [0, 2**12-1]).astype(np.uint16)
-            bpp = 12
-        else:
-            raw_image = np.frombuffer(data, dtype='uint16')
-            raw_image.shape = (height, width)
-            raw_image = np.flipud(raw_image)
-            raw_image = np.interp(raw_image, [setup.BlackLevel, setup.WhiteLevel],
-                                             [0, 2**setup.RealBPP-1]).astype(np.uint16)
-            bpp = setup.RealBPP
+    if header['bitmapinfoheader'].biCompression:
+        raw_image = unpack_10bit(data, width, height)
+        raw_image = linLUT[raw_image].astype(np.uint16)
+        raw_image = np.interp(raw_image, [64, 4064], [0, 2**12-1]).astype(np.uint16)
+        bpp = 12
+    else:
+        raw_image = np.frombuffer(data, dtype='uint16')
+        raw_image.shape = (height, width)
+        raw_image = np.flipud(raw_image)
+        raw_image = np.interp(raw_image, [header['setup'].BlackLevel, header['setup'].WhiteLevel],
+                                         [0, 2**header['setup'].RealBPP-1]).astype(np.uint16)
+        bpp = header['setup'].RealBPP
 
-        return raw_image, setup, bpp
+    return raw_image, header['setup'], bpp
 
 
 # TODO: make LUT function
