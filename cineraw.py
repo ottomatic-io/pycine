@@ -3,14 +3,20 @@
 """
 Read phantom .cine files.
 
-Usage: cineraw.py CINEFILE [-f] (OUTFILE | --display)
+Usage:
+cineraw.py CINEFILE [options] (-f FORMAT | --display)
 
-OUTFILE           can end in .png, .jpg or .tif
--d --display      show a preview
--f --fieldnames   print all fieldnames
+Options:
+-f --format FORMAT          can be one of .png, .jpg or .tif
+-o --outdir FORMAT          [default: .]
+-d --display                show a preview
+-s --start_frame FRAME      start from FRAME [default: 1]
+-c --count COUNT            [default: 1]
+--fieldnames                print all fieldnames
+-h --help                   print this help message
 
 """
-
+import os
 import struct
 
 import cv2
@@ -203,36 +209,54 @@ def create_raw_array(data, header):
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
         raw_image = np.interp(raw_image, [64, 4064], [0, 2**12-1]).astype(np.uint16)
-        bpp = 12
     else:
         raw_image = np.frombuffer(data, dtype='uint16')
         raw_image.shape = (height, width)
         raw_image = np.flipud(raw_image)
         raw_image = np.interp(raw_image, [header['setup'].BlackLevel, header['setup'].WhiteLevel],
                                          [0, 2**header['setup'].RealBPP-1]).astype(np.uint16)
-        bpp = header['setup'].RealBPP
 
-    return raw_image, bpp
+    return raw_image
 
 
-def read_frame(myfile, frame=0):
-    header = read_header(myfile)
+def frame_reader(myfile, header, start_frame=1, count=None):
+    frame = start_frame
+    if not count:
+        count = header['cinefileheader'].ImageCount
 
     with open(myfile, 'rb') as f:
-        f.seek(header['pImage'][frame])
+        while count:
+            frame_index = frame - 1
+            print "Reading frame {}".format(frame)
 
-        AnnotationSize = struct.unpack('I', f.read(4))[0]
-        Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
-                                   f.read((AnnotationSize - 8) / 8))
-        header["Annotation"] = Annotation
+            f.seek(header['pImage'][frame_index])
 
-        ImageSize = struct.unpack('I', f.read(4))[0]
+            AnnotationSize = struct.unpack('I', f.read(4))[0]
+            Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
+                                       f.read((AnnotationSize - 8) / 8))
+            header["Annotation"] = Annotation
 
-        data = f.read(ImageSize)
+            ImageSize = struct.unpack('I', f.read(4))[0]
 
-    raw_image, bpp = create_raw_array(data, header)
+            data = f.read(ImageSize)
 
-    return raw_image, header['setup'], bpp
+            raw_image = create_raw_array(data, header)
+
+            yield raw_image
+            frame += 1
+            count -= 1
+
+
+def read_frames(myfile, start_frame=1, count=None):
+    header = read_header(myfile)
+    if header['bitmapinfoheader'].biCompression:
+        bpp = 12
+    else:
+        bpp = header['setup'].RealBPP
+
+    raw_images = frame_reader(myfile, header, start_frame=start_frame, count=count)
+
+    return raw_images, header['setup'], bpp
 
 
 # TODO: make LUT function
@@ -307,24 +331,37 @@ linLUT = np.array([
 if __name__ == '__main__':
     args = docopt(__doc__)
 
-    raw_image, setup, bpp = read_frame(args['CINEFILE'], frame=0)
-    rgb_image = color_pipeline(raw_image, setup=setup, bpp=bpp)
+    start_frame = int(args['--start_frame'])
+    count = int(args['--count'])
 
-    if setup.EnableCrop:
-        rgb_image = rgb_image[setup.CropRect.top:setup.CropRect.bottom + 1,
-                              setup.CropRect.left:setup.CropRect.right + 1]
+    raw_images, setup, bpp = read_frames(args['CINEFILE'],
+                                         start_frame=start_frame,
+                                         count=count)
 
-    if setup.EnableResample:
-        rgb_image = cv2.resize(rgb_image, (setup.ResampleWidth,
-                                           setup.ResampleHeight))
+    rgb_images = (color_pipeline(raw_image, setup=setup, bpp=bpp) for raw_image in raw_images)
 
     if args['--fieldnames']:
         for field_name, field_type in setup._fields_:
             attr = getattr(setup, field_name)
-            print field_name, np.asarray(attr)
+        print field_name, np.asarray(attr)
 
-    if args['OUTFILE']:
-        save(rgb_image, args['OUTFILE'])
+    for i, rgb_image in enumerate(rgb_images):
+        frame = start_frame + i
 
-    if args['--display']:
-        display(resize(rgb_image, 500))
+        if setup.EnableCrop:
+            rgb_image = rgb_image[setup.CropRect.top:setup.CropRect.bottom + 1,
+                                  setup.CropRect.left:setup.CropRect.right + 1]
+
+        if setup.EnableResample:
+            rgb_image = cv2.resize(rgb_image, (setup.ResampleWidth,
+                                               setup.ResampleHeight))
+        if args['--format']:
+            ending = args['--format'].strip('.')
+            name = os.path.splitext(os.path.basename(args['CINEFILE']))[0]
+            outname = '{}-{:06d}.{}'.format(name, frame, ending)
+            outfile = os.path.join(args['--outdir'], outname)
+            print "Writing File {}".format(outname)
+            save(rgb_image, outfile)
+
+        if args['--display']:
+            display(resize(rgb_image, 500))
