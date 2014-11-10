@@ -3,18 +3,19 @@
 """
 Read phantom .cine files.
 
-Documentation found here:
-http://www.visionresearch.com/devzonedownloads/Cine%20File%20Format-741.pdf
+Usage: cineraw.py CINEFILE [-f] (OUTFILE | --display)
 
-Copyright (c) 2014, Ben Hagen <ben@kamerawerk.ch>
-License: GPLv3 or later
+OUTFILE           can end in .png, .jpg or .tif
+-d --display      show a preview
+-f --fieldnames   print all fieldnames
+
 """
 
-import os
 import struct
 
 import cv2
 import numpy as np
+from docopt import docopt
 
 import cine
 
@@ -289,10 +290,9 @@ linLUT = np.array([
 
 
 if __name__ == '__main__':
-    myfile = 'testfiles/chart1.cine'
-    outfile = os.path.splitext(myfile)[0] + '.tif'
+    args = docopt(__doc__)
 
-    raw_image, setup, bpp = readframe(myfile, frame=0)
+    raw_image, setup, bpp = readframe(args['CINEFILE'], frame=0)
     rgb_image = color_pipeline(raw_image, setup=setup, bpp=bpp)
 
     if setup.EnableCrop:
@@ -303,10 +303,13 @@ if __name__ == '__main__':
         rgb_image = cv2.resize(rgb_image, (setup.ResampleWidth,
                                            setup.ResampleHeight))
 
-    """
-    for field_name, field_type in setup._fields_:
-        print field_name, getattr(setup, field_name)
-    """
+    if args['--fieldnames']:
+        for field_name, field_type in setup._fields_:
+            attr = getattr(setup, field_name)
+            print field_name, np.asarray(attr)
 
-    # save(rgb_image, outfile)
-    display(resize(rgb_image, 500))
+    if args['OUTFILE']:
+        save(rgb_image, args['OUTFILE'])
+
+    if args['--display']:
+        display(resize(rgb_image, 500))
