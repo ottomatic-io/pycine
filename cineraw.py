@@ -196,20 +196,8 @@ def readheader(myfile):
     return header
 
 
-def readframe(myfile, frame=0):
-    header = readheader(myfile)
-
-    with open(myfile, 'rb') as f:
-        f.seek(header['pImage'][frame])
-
-        AnnotationSize = struct.unpack('I', f.read(4))[0]
-        Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
-                                   f.read((AnnotationSize - 8) / 8))
-        ImageSize = struct.unpack('I', f.read(4))[0]
-
-        width, height = header['bitmapinfoheader'].biWidth, header['bitmapinfoheader'].biHeight
-
-        data = f.read(ImageSize)
+def create_raw_array(data, header):
+    width, height = header['bitmapinfoheader'].biWidth, header['bitmapinfoheader'].biHeight
 
     if header['bitmapinfoheader'].biCompression:
         raw_image = unpack_10bit(data, width, height)
@@ -223,6 +211,26 @@ def readframe(myfile, frame=0):
         raw_image = np.interp(raw_image, [header['setup'].BlackLevel, header['setup'].WhiteLevel],
                                          [0, 2**header['setup'].RealBPP-1]).astype(np.uint16)
         bpp = header['setup'].RealBPP
+
+    return raw_image, bpp
+
+
+def readframe(myfile, frame=0):
+    header = readheader(myfile)
+
+    with open(myfile, 'rb') as f:
+        f.seek(header['pImage'][frame])
+
+        AnnotationSize = struct.unpack('I', f.read(4))[0]
+        Annotation = struct.unpack('{}B'.format(AnnotationSize - 8),
+                                   f.read((AnnotationSize - 8) / 8))
+        header["Annotation"] = Annotation
+
+        ImageSize = struct.unpack('I', f.read(4))[0]
+
+        data = f.read(ImageSize)
+
+    raw_image, bpp = create_raw_array(data, header)
 
     return raw_image, header['setup'], bpp
 
