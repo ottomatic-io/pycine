@@ -176,7 +176,7 @@ def save(rgb_image, outfile):
     cv2.imwrite(outfile, rgb_image * 255)
 
 
-def readheader(myfile):
+def read_header(myfile):
     with open(myfile, 'rb') as f:
         header = {}
         header['cinefileheader'] = cine.CINEFILEHEADER()
@@ -215,8 +215,8 @@ def create_raw_array(data, header):
     return raw_image, bpp
 
 
-def readframe(myfile, frame=0):
-    header = readheader(myfile)
+def read_frame(myfile, frame=0):
+    header = read_header(myfile)
 
     with open(myfile, 'rb') as f:
         f.seek(header['pImage'][frame])
@@ -307,7 +307,7 @@ linLUT = np.array([
 if __name__ == '__main__':
     args = docopt(__doc__)
 
-    raw_image, setup, bpp = readframe(args['CINEFILE'], frame=0)
+    raw_image, setup, bpp = read_frame(args['CINEFILE'], frame=0)
     rgb_image = color_pipeline(raw_image, setup=setup, bpp=bpp)
 
     if setup.EnableCrop:
