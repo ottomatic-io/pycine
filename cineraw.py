@@ -101,19 +101,45 @@ def unpack_10bit(data, width, height):
 
 def create_raw_array(data, header):
     width, height = header['bitmapinfoheader'].biWidth, header['bitmapinfoheader'].biHeight
+    BayerPatterns = {3: 'gbrg', 4: 'rggb'}
+    pattern = BayerPatterns[header['setup'].CFA]
 
     if header['bitmapinfoheader'].biCompression:
         raw_image = unpack_10bit(data, width, height)
+        fix_bad_pixels(raw_image, header['setup'].WhiteLevel, pattern)
         raw_image = linLUT[raw_image].astype(np.uint16)
         raw_image = np.interp(raw_image, [64, 4064], [0, 2**12-1]).astype(np.uint16)
     else:
         raw_image = np.frombuffer(data, dtype='uint16')
         raw_image.shape = (height, width)
+        fix_bad_pixels(raw_image, header['setup'].WhiteLevel, pattern)
         raw_image = np.flipud(raw_image)
         raw_image = np.interp(raw_image, [header['setup'].BlackLevel, header['setup'].WhiteLevel],
                                          [0, 2**header['setup'].RealBPP-1]).astype(np.uint16)
 
     return raw_image
+
+
+def fix_bad_pixels(raw_image, white_level, pattern):
+    hot = np.where(raw_image > white_level)
+    coordinates = zip(hot[0], hot[1])
+
+    masked_image = np.ma.MaskedArray(raw_image)
+
+    for color in 'rgb':
+        # FIXME: reuse those masks for whitebalancing
+        mask = gen_mask(pattern, color, raw_image)
+        masked_image.mask = mask
+        smooth = cv2.medianBlur(masked_image, ksize=3)
+
+        for coord in coordinates:
+            if not mask[coord]:
+                print 'fixing {} in color {}'.format(coord, color)
+                raw_image[coord] = smooth[coord]
+
+        print 'done color', color
+
+    masked_image.mask = np.ma.nomask
 
 
 def color_pipeline(raw, setup, bpp=12):
