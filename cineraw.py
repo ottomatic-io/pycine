@@ -301,7 +301,7 @@ if __name__ == '__main__':
     if args['--fieldnames']:
         for field_name, field_type in setup._fields_:
             attr = getattr(setup, field_name)
-        print field_name, np.asarray(attr)
+            print field_name, np.asarray(attr)
 
     for i, rgb_image in enumerate(rgb_images):
         frame = start_frame + i
