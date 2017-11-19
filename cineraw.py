@@ -16,6 +16,8 @@ Options:
 -h --help                   print this help message
 
 """
+from __future__ import print_function, unicode_literals
+
 import os
 import struct
 
@@ -55,7 +57,7 @@ def frame_reader(myfile, header, start_frame=1, count=None):
     with open(myfile, 'rb') as f:
         while count:
             frame_index = frame - 1
-            print "Reading frame {}".format(frame)
+            print("Reading frame {}".format(frame))
 
             f.seek(header['pImage'][frame_index])
 
@@ -134,10 +136,10 @@ def fix_bad_pixels(raw_image, white_level, pattern):
 
         for coord in coordinates:
             if not mask[coord]:
-                print 'fixing {} in color {}'.format(coord, color)
+                print('fixing {} in color {}'.format(coord, color))
                 raw_image[coord] = smooth[coord]
 
-        print 'done color', color
+        print('done color', color)
 
     masked_image.mask = np.ma.nomask
 
@@ -147,7 +149,7 @@ def color_pipeline(raw, setup, bpp=12):
     http://www.visionresearch.com/phantomzone/viewtopic.php?f=20&t=572#p3884
     """
     # 1. Offset the raw image by the amount in flare
-    print "fFlare: ", setup.fFlare
+    print("fFlare: ", setup.fFlare)
 
     # 2. White balance the raw picture using the white balance component of cmatrix
     BayerPatterns = {3: 'gbrg', 4: 'rggb'}
@@ -180,9 +182,9 @@ def color_pipeline(raw, setup, bpp=12):
     ccm2[1][1] = 1 - ccm2[1][0] - ccm2[1][2]
     ccm2[2][2] = 1 - ccm2[2][0] - ccm2[2][1]
 
-    print "cmCalib", cmCalib
-    print "ccm: ", ccm
-    print "ccm2", ccm2
+    print("cmCalib", cmCalib)
+    print("ccm: ", ccm)
+    print("ccm2", ccm2)
 
     rgb_image = np.dot(rgb_image, ccm.T)
 
@@ -191,32 +193,32 @@ def color_pipeline(raw, setup, bpp=12):
     rgb_image = np.dot(rgb_image, cmUser.T)
 
     # 6. Offset the image by the amount in offset
-    print "fOffset: ", setup.fOffset
+    print("fOffset: ", setup.fOffset)
 
     # 7. Apply the global gain
-    print "fGain: ", setup.fGain
+    print("fGain: ", setup.fGain)
 
     # 8. Apply the per-component gains red, green, blue
-    print "fGainR, fGainG, fGainB: ", setup.fGainR, setup.fGainG, setup.fGainB
+    print("fGainR, fGainG, fGainB: ", setup.fGainR, setup.fGainG, setup.fGainB)
 
     # 9. Apply the gamma curves; the green channel uses gamma, red uses gamma + rgamma and blue uses gamma + bgamma
-    print "fGamma, fGammaR, fGammaB: ", setup.fGamma, setup.fGammaR, setup.fGammaB
+    print("fGamma, fGammaR, fGammaB: ", setup.fGamma, setup.fGammaR, setup.fGammaB)
     rgb_image = apply_gamma(rgb_image, setup)
 
     # 10. Apply the tone curve to each of the red, green, blue channels
     fTone = np.asarray(setup.fTone)
-    print setup.ToneLabel, setup.TonePoints, fTone
+    print(setup.ToneLabel, setup.TonePoints, fTone)
 
     # 11. Add the pedestals to each color channel, and linearly rescale to keep the white point the same.
-    print "fPedestalR, fPedestalG, fPedestalB: ", setup.fPedestalR, setup.fPedestalG, setup.fPedestalB
+    print("fPedestalR, fPedestalG, fPedestalB: ", setup.fPedestalR, setup.fPedestalG, setup.fPedestalB)
 
     # 12. Convert to YCrCb using REC709 coefficients
 
     # 13. Scale the Cr and Cb components by chroma.
-    print "fChroma: ", setup.fChroma
+    print("fChroma: ", setup.fChroma)
 
     # 14. Rotate the Cr and Cb components around the origin in the CrCb plane by hue degrees.
-    print "fHue: ", setup.fHue
+    print("fHue: ", setup.fHue)
 
     return rgb_image
 
@@ -225,12 +227,12 @@ def whitebalance_raw(raw, setup, pattern):
     cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
     whitebalance = np.diag(cmCalib)
 
-    print "WBGain: ", np.asarray(setup.WBGain)
-    print "WBView: ", np.asarray(setup.WBView)
-    print "fWBTemp: ", setup.fWBTemp
-    print "fWBCc: ", setup.fWBCc
-    print "cmCalib: ", cmCalib
-    print "whitebalance: ", whitebalance
+    print("WBGain: ", np.asarray(setup.WBGain))
+    print("WBView: ", np.asarray(setup.WBView))
+    print("fWBTemp: ", setup.fWBTemp)
+    print("fWBCc: ", setup.fWBCc)
+    print("cmCalib: ", cmCalib)
+    print("whitebalance: ", whitebalance)
 
     # FIXME: maybe use .copy()
     wb_raw = np.ma.MaskedArray(raw)
@@ -301,7 +303,7 @@ if __name__ == '__main__':
     if args['--fieldnames']:
         for field_name, field_type in setup._fields_:
             attr = getattr(setup, field_name)
-            print field_name, np.asarray(attr)
+            print(field_name, np.asarray(attr))
 
     for i, rgb_image in enumerate(rgb_images):
         frame = start_frame + i
@@ -318,7 +320,7 @@ if __name__ == '__main__':
             name = os.path.splitext(os.path.basename(args['CINEFILE']))[0]
             outname = '{}-{:06d}.{}'.format(name, frame, ending)
             outfile = os.path.join(args['--outdir'], outname)
-            print "Writing File {}".format(outname)
+            print("Writing File {}".format(outname))
             save(rgb_image, outfile)
 
         if args['--display']:
