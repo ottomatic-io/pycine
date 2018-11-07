@@ -24,13 +24,13 @@ def color_pipeline(raw, setup, bpp=12):
     # return rgb_image
 
     # 4. Apply the color correction matrix component of cmatrix
-    """
-    From the documentation:
-    ...should decompose this
-    matrix in two components: a diagonal one with the white balance to be
-    applied before interpolation and a normalized one to be applied after
-    interpolation.
-    """
+    #
+    # From the documentation:
+    # ...should decompose this
+    # matrix in two components: a diagonal one with the white balance to be
+    # applied before interpolation and a normalized one to be applied after
+    # interpolation.
+
     cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
 
     # normalize matrix
