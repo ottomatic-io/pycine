@@ -6,7 +6,7 @@ Reading Vision Research cine files with python
 Installation
 ------------
 ```
-pip install git+https://github.com/OTTOMATIC-IO/pycine.git@develop
+pip install git+https://github.com/OTTOMATIC-IO/pycine.git
 ```
 
 Usage
