@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+click = "*"
+docopt = "*"
+opencv-python = "*"
+numpy = "*"
+
+[dev-packages]
+pyinstaller = "*"
+
+[requires]
+python_version = "3.7"
+
+[scripts]
+build = "pyinstaller pycine/pfs_meta.py --onefile"
+buildraw = "pyinstaller pycine/cineraw.py --onefile"
+deploy = "rsync dist/pfs_meta kamerawe@phantomfuse.com:/home/kamerawe/public_html/phantomfuse/"

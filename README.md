@@ -1,28 +1,45 @@
-python-cine
-===========
+pycine
+======
 
 Reading Vision Research cine files with python
 
-## Requirements
-- numpy
-- opencv
-
-### On OSX
-You might need to install [Homebrew](http://brew.sh/) first. 
+Installation
+------------
 ```
-brew install python opencv
+pip install git+https://github.com/OTTOMATIC-IO/pycine.git@develop
 ```
 
+Usage
+-----
+To edit metadata:
 ```
-pip install -r requirements.txt
+Usage: pfs_meta [OPTIONS] COMMAND [ARGS]...
+
+  This tool allows .cine file metadata manipulation. Use COMMAND --help for
+  more info.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  copy  Copy metadata from a source clip
+  set   Set metadata
+  show  Show metadata
 ```
 
+To read frames:
+```
+Usage: pfs_raw [OPTIONS] CINE_FILE [OUT_PATH]
 
-### On Ubuntu
-```
-apt-get install python-opencv python-numpy
+Options:
+  --file_format [.png|.jpg|.tif]
+  --start_frame INTEGER
+  --count INTEGER
+  --version                       Show the version and exit.
+  --help                          Show this message and exit.
 ```
 
-```
-pip install -r requirements.txt
-```
+Jupyter notebook
+----------------
+Check out an example on how to use the library from a jupyter notebook:
+[notebooks/Display frames.ipynb](notebooks/Display%20frames.ipynb)
