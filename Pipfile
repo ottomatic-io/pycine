@@ -4,10 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-click = "*"
-docopt = "*"
-opencv-python = "*"
-numpy = "*"
+pycine = {editable = true, path = "."}
 
 [dev-packages]
 pyinstaller = "*"
