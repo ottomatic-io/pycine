@@ -1,6 +1,6 @@
 # pycine
 
-Reading Vision Research cine files with python
+Reading Vision Research .cine files with python
 
 
 ## Installation
