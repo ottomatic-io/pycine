@@ -1,16 +1,26 @@
-pycine
-======
+# pycine
 
 Reading Vision Research .cine files with python
 
-Installation
-------------
+
+## Installation
+
+### Release Version
+
 ```
-pip install git+https://github.com/OTTOMATIC-IO/pycine.git
+pip install pycine
 ```
 
-Usage
------
+
+### Development version
+
+```
+pip install git+https://github.com/ottomatic-io/pycine.git
+```
+
+
+## Usage
+
 To edit metadata:
 ```
 Usage: pfs_meta [OPTIONS] COMMAND [ARGS]...
@@ -39,7 +49,8 @@ Options:
   --help                          Show this message and exit.
 ```
 
-Jupyter notebook
-----------------
+
+## Jupyter notebook
+
 Check out an example on how to use the library from a jupyter notebook:
 [notebooks/Display frames.ipynb](notebooks/Display%20frames.ipynb)
