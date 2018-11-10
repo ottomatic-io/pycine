@@ -1,6 +1,6 @@
 # pycine
 
-[![PyPI version](https://badge.fury.io/py/pyphantom.svg)](https://badge.fury.io/py/pyphantom)
+[![PyPI version](https://badge.fury.io/py/pyphantom.svg)](https://pypi.org/project/pycine/)
 [![GitHub license](https://img.shields.io/github/license/OTTOMATIC-IO/pyphantom.svg)](https://github.com/OTTOMATIC-IO/pyphantom/blob/master/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/42cbb1d8fd0d4be99d802206c83b7b29)](https://app.codacy.com/app/OTTOMATIC/pycine?utm_source=github.com&utm_medium=referral&utm_content=OTTOMATIC-IO/pycine&utm_campaign=Badge_Grade_Dashboard)
