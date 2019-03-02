@@ -24,8 +24,8 @@ def show_metadata(header, cine_file):
         Clip: {cine_file}
         Created by: {created_by}
         Record FPS: {record_rate}
-        Playback FPS: {playback_rate}
-        Timecode FPS: {timecode_rate}
+        Playback FPS: {playback_rate:.5g}
+        Timecode FPS: {timecode_rate:.5g}
         Temp: {temp}
         CC: {cc}
         CalibrationInfo: {header['setup'].CalibrationInfo}
@@ -77,7 +77,7 @@ def show(clips):
 
 
 # noinspection PyPep8Naming
-@cli.command(help='Copy metadata from a source clip')
+@cli.command(help="Copy metadata from a source clip")
 @click.option("--all_metadata", help="Copy color temperature, color correction and tone curve.", is_flag=True)
 @click.option(
     "--wb",
@@ -116,12 +116,12 @@ def copy(all_metadata, wb, tone, source, destinations):
 
 
 # noinspection PyPep8Naming
-@cli.command('set', help="Set metadata")
+@cli.command("set", help="Set metadata")
 @click.option("--temp", type=float, help="Set color temperature.")
 @click.option("--cc", type=float, help="Set color correction.")
-@click.option("--record_fps", type=int, help="Set record FPS.")
-@click.option("--playback_fps", type=float, help="Set playback FPS.")
-@click.option("--timecode_fps", type=float, help="Set timecode FPS.")
+@click.option("--record-fps", type=int, help="Set record FPS.")
+@click.option("--playback-fps", type=str, help="Set playback FPS. Use 60 or 60/1.001 but not 59.94")
+@click.option("--timecode-fps", type=str, help="Set timecode FPS. Use 60 or 60/1.001 but not 59.94")
 @click.option(
     "--tone", type=str, help='Set tone curve in the form of "[LABEL] x1 y1 x2 y2". You can set up to 32 xy points.'
 )
@@ -147,17 +147,30 @@ def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone):
             dest_header["setup"].fTone = tone
 
         if record_fps:
-            dest_header["setup"].FrameRate = playback_fps
+            dest_header["setup"].FrameRate = record_fps
 
         if playback_fps:
-            dest_header["setup"].fPbRate = playback_fps
+            dest_header["setup"].fPbRate = _parse_fps(playback_fps)
 
         if timecode_fps:
-            dest_header["setup"].fTcRate = timecode_fps
+            dest_header["setup"].fTcRate = _parse_fps(timecode_fps)
 
         if any([temp, cc, record_fps, playback_fps, timecode_fps, tone]):
             click.secho(f"Writing metadata to {d}.", fg="green")
             write_header(d, dest_header)
+
+
+def _parse_fps(fps: str) -> float:
+    try:
+        return float(int(fps))
+    except ValueError:
+        try:
+            dividend, divisor = fps.strip().replace(" ", "").split("/")
+            return float(dividend) / float(divisor)
+        except ValueError:
+            click.secho("Please set drop-frame rates as a division. For example:",  fg="red")
+            click.secho("pfs_meta set --playback-fps 60/1.001 *.cine")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

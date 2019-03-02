@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 pycine = {editable = true, path = "."}
+colorama = "*"
 
 [dev-packages]
 pyinstaller = "*"
@@ -13,6 +14,6 @@ pyinstaller = "*"
 python_version = "3.7"
 
 [scripts]
-build = "pyinstaller pycine/pfs_meta.py --onefile"
-buildraw = "pyinstaller pycine/cineraw.py --onefile"
+build = "pyinstaller pycine/cli/pfs_meta.py --onefile"
+buildraw = "pyinstaller pycine/cli/cineraw.py --onefile"
 deploy = "rsync dist/pfs_meta kamerawe@phantomfuse.com:/home/kamerawe/public_html/phantomfuse/"
