@@ -19,8 +19,8 @@ def save(rgb_image, outfile):
 
 
 @click.command()
-@click.option("--file_format", default=".png", type=click.Choice([".png", ".jpg", ".tif"]))
-@click.option("--start_frame", default=1, type=click.INT)
+@click.option("--file-format", default=".png", type=click.Choice([".png", ".jpg", ".tif"]))
+@click.option("--start-frame", default=1, type=click.INT)
 @click.option("--count", default=1, type=click.INT)
 @click.argument("cine_file", type=click.Path(exists=True, readable=True, dir_okay=False, file_okay=True))
 @click.argument("out_path", required=False, type=click.Path(exists=True, dir_okay=True, file_okay=False))

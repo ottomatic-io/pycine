@@ -35,12 +35,12 @@ pip install git+https://github.com/ottomatic-io/pycine.git
 
 ### Changing the playback and timecode framerates
 ```
-pfs_meta set --playback_fps 60/1.001 --timecode_fps 60/1.001 A001C001_190302_16001.cine
+pfs_meta set --playback-fps 60/1.001 --timecode_fps 60/1.001 A001C001_190302_16001.cine
 ```
 
 You can also set metadata for multiple clips at once:
 ```
-pfs_meta set --playback_fps 24/1.001 --timecode_fps 24/1.001 *.cine
+pfs_meta set --playback-fps 24/1.001 --timecode_fps 24/1.001 *.cine
 ```
 
 ## Help
@@ -86,8 +86,8 @@ $ pfs_raw --help
 Usage: pfs_raw [OPTIONS] CINE_FILE [OUT_PATH]
 
 Options:
-  --file_format [.png|.jpg|.tif]
-  --start_frame INTEGER
+  --file-format [.png|.jpg|.tif]
+  --start-frame INTEGER
   --count INTEGER
   --version                       Show the version and exit.
   --help                          Show this message and exit.
