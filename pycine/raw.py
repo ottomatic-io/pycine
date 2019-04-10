@@ -1,9 +1,12 @@
+import logging
 import struct
 
 import numpy as np
 
 from pycine.file import read_header
 from pycine.linLUT import linLUT
+
+logger = logging.getLogger()
 
 
 def frame_reader(cine_file, header, start_frame=1, count=None):
@@ -14,7 +17,7 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
     with open(cine_file, "rb") as f:
         while count:
             frame_index = frame - 1
-            print("Reading frame {}".format(frame))
+            logger.debug("Reading frame {}".format(frame))
 
             f.seek(header["pImage"][frame_index])
 
