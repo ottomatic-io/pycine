@@ -28,6 +28,24 @@ def read_header(cine_file):
     return header
 
 
+def read_chd_header(chd_file):
+    """
+    read the .chd header file created when Vision Research software saves the images in a file format other than .cine
+    """
+
+    with open(chd_file, "rb") as f:
+        header = {
+            "cinefileheader": cine.CINEFILEHEADER(),
+            "bitmapinfoheader": cine.BITMAPINFOHEADER(),
+            "setup": cine.SETUP(),
+        }
+        f.readinto(header["cinefileheader"])
+        f.readinto(header["bitmapinfoheader"])
+        f.readinto(header["setup"])
+
+    return header
+
+
 def write_header(cine_file, header, backup=True):
     if backup:
         backup_header(cine_file)
