@@ -65,7 +65,8 @@ def unpack_10bit(data, width, height):
 
 
 def create_raw_array(data, header):
-    width, height = header["bitmapinfoheader"].biWidth, header["bitmapinfoheader"].biHeight
+    width = header["bitmapinfoheader"].biWidth
+    height = header["bitmapinfoheader"].biHeight
 
     if header["bitmapinfoheader"].biCompression:
         raw_image = unpack_10bit(data, width, height)
@@ -77,8 +78,9 @@ def create_raw_array(data, header):
         raw_image.shape = (height, width)
         raw_image = np.flipud(raw_image)
         raw_image = np.interp(
-            raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [
-                0, 2 ** header["setup"].RealBPP - 1]
+            raw_image,
+            [header["setup"].BlackLevel, header["setup"].WhiteLevel],
+            [0, 2 ** header["setup"].RealBPP - 1]
         ).astype(np.uint16)
 
     return raw_image

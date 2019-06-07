@@ -19,26 +19,33 @@ def save(rgb_image, outfile):
 
 
 @click.command()
-@click.option("--file-format", default=".png", type=click.Choice([".png", ".jpg", ".tif"]))
+@click.option("--file-format", default=".png",
+              type=click.Choice([".png", ".jpg", ".tif"]))
 @click.option("--start-frame", default=1, type=click.INT)
 @click.option("--count", default=1, type=click.INT)
-@click.argument("cine_file", type=click.Path(exists=True, readable=True, dir_okay=False, file_okay=True))
-@click.argument("out_path", required=False, type=click.Path(exists=True, dir_okay=True, file_okay=False))
+@click.argument("cine_file", type=click.Path(exists=True, readable=True,
+                                             dir_okay=False, file_okay=True))
+@click.argument("out_path", required=False,
+                type=click.Path(exists=True, dir_okay=True, file_okay=False))
 @click.version_option()
 def cli(file_format, start_frame, count, out_path, cine_file):
-    raw_images, setup, bpp = read_frames(cine_file, start_frame=start_frame, count=count)
-    rgb_images = (color_pipeline(raw_image, setup=setup, bpp=bpp) for raw_image in raw_images)
+    raw_images, setup, bpp = read_frames(
+        cine_file, start_frame=start_frame, count=count)
+    rgb_images = (color_pipeline(raw_image, setup=setup, bpp=bpp)
+                  for raw_image in raw_images)
 
     for i, rgb_image in enumerate(rgb_images):
         frame = start_frame + i
 
         if setup.EnableCrop:
             rgb_image = rgb_image[
-                setup.CropRect.top : setup.CropRect.bottom + 1, setup.CropRect.left : setup.CropRect.right + 1
+                setup.CropRect.top: setup.CropRect.bottom + 1,
+                setup.CropRect.left: setup.CropRect.right + 1
             ]
 
         if setup.EnableResample:
-            rgb_image = cv2.resize(rgb_image, (setup.ResampleWidth, setup.ResampleHeight))
+            rgb_image = cv2.resize(
+                rgb_image, (setup.ResampleWidth, setup.ResampleHeight))
 
         if out_path:
             ending = file_format.strip(".")

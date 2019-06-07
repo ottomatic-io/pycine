@@ -9,11 +9,13 @@ def color_pipeline(raw, setup, bpp=12):
     # 1. Offset the raw image by the amount in flare
     print("fFlare: ", setup.fFlare)
 
-    # 2. White balance the raw picture using the white balance component of cmatrix
+    # 2. White balance the raw picture
+    #    using the white balance component of cmatrix
     BayerPatterns = {3: "gbrg", 4: "rggb"}
     pattern = BayerPatterns[setup.CFA]
 
-    raw = whitebalance_raw(raw.astype(np.float32), setup, pattern).astype(np.uint16)
+    raw = whitebalance_raw(raw.astype(np.float32), setup,
+                           pattern).astype(np.uint16)
 
     # 3. Debayer the image
     rgb_image = cv2.cvtColor(raw, cv2.COLOR_BAYER_GB2RGB)
@@ -61,7 +63,8 @@ def color_pipeline(raw, setup, bpp=12):
     ).reshape(3, 3)
 
     rgb_image = np.dot(rgb_image, m.T)
-    # rgb_reshaped = rgb_image.reshape((rgb_image.shape[0] * rgb_image.shape[1], rgb_image.shape[2]))
+    # rgb_reshaped = rgb_image.reshape(
+    # (rgb_image.shape[0] * rgb_image.shape[1], rgb_image.shape[2]))
     # rgb_image = np.dot(m, rgb_reshaped.T).T.reshape(rgb_image.shape)
 
     # 5. Apply the user RGB matrix umatrix
@@ -77,23 +80,29 @@ def color_pipeline(raw, setup, bpp=12):
     # 8. Apply the per-component gains red, green, blue
     print("fGainR, fGainG, fGainB: ", setup.fGainR, setup.fGainG, setup.fGainB)
 
-    # 9. Apply the gamma curves; the green channel uses gamma, red uses gamma + rgamma and blue uses gamma + bgamma
-    print("fGamma, fGammaR, fGammaB: ", setup.fGamma, setup.fGammaR, setup.fGammaB)
+    # 9. Apply the gamma curves;
+    #    the green channel uses gamma,
+    #    red uses gamma + rgamma and blue uses gamma + bgamma
+    print("fGamma, fGammaR, fGammaB: ",
+          setup.fGamma, setup.fGammaR, setup.fGammaB)
     rgb_image = apply_gamma(rgb_image, setup)
 
     # 10. Apply the tone curve to each of the red, green, blue channels
     fTone = np.asarray(setup.fTone)
     print(setup.ToneLabel, setup.TonePoints, fTone)
 
-    # 11. Add the pedestals to each color channel, and linearly rescale to keep the white point the same.
-    print("fPedestalR, fPedestalG, fPedestalB: ", setup.fPedestalR, setup.fPedestalG, setup.fPedestalB)
+    # 11. Add the pedestals to each color channel,
+    #     and linearly rescale to keep the white point the same.
+    print("fPedestalR, fPedestalG, fPedestalB: ",
+          setup.fPedestalR, setup.fPedestalG, setup.fPedestalB)
 
     # 12. Convert to YCrCb using REC709 coefficients
 
     # 13. Scale the Cr and Cb components by chroma.
     print("fChroma: ", setup.fChroma)
 
-    # 14. Rotate the Cr and Cb components around the origin in the CrCb plane by hue degrees.
+    # 14. Rotate the Cr and Cb components
+    #     around the origin in the CrCb plane by hue degrees.
     print("fHue: ", setup.fHue)
 
     return rgb_image
@@ -101,7 +110,9 @@ def color_pipeline(raw, setup, bpp=12):
 
 def gen_mask(pattern, c, image):
     def color_kern(pattern, c):
-        return np.array([[pattern[0] != c, pattern[1] != c], [pattern[2] != c, pattern[3] != c]])
+        ret = [[pattern[0] != c, pattern[1] != c],
+               [pattern[2] != c, pattern[3] != c]]
+        return np.array(ret)
 
     (h, w) = image.shape[:2]
     cells = np.ones((h // 2, w // 2))
@@ -137,7 +148,8 @@ def whitebalance_raw(raw, setup, pattern):
 
 
 def apply_gamma(rgb_image, setup):
-    # FIXME: using 2.2 for now because 8.0 from the sample image seems way out of place
+    # FIXME: using 2.2 for now because 8.0 from
+    #        the sample image seems way out of place
     # --> this is not at all how vri is doing it!
     rgb_image **= 1.0 / 2.2
     # rgb_image[:, :, 0] **= (1.0 / (setup.fGammaR + setup.fGamma))
