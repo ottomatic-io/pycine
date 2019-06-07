@@ -4,8 +4,8 @@ http://starship.python.net/crew/theller/ctypes/old/codegen.html
 """
 
 # from ctypes import *
-from ctypes import c_uint8, c_int16, c_uint16, c_int32
-from ctypes import c_int64, c_uint64, c_int, uint32_t, POINTER, Structure
+from ctypes import c_uint8, c_int16, c_uint16, c_int32, c_uint32
+from ctypes import c_int64, c_uint64, c_int, POINTER, Structure
 from ctypes import c_float, c_char, c_double
 
 
@@ -13,7 +13,7 @@ uint8_t = c_uint8
 int16_t = c_int16
 uint16_t = c_uint16
 int32_t = c_int32
-# uint32_t = c_uint32
+uint32_t = c_uint32
 int64_t = c_int64
 uint64_t = c_uint64
 bool32_t = c_int
