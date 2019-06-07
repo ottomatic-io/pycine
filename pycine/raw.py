@@ -22,7 +22,8 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
             f.seek(header["pImage"][frame_index])
 
             annotation_size = struct.unpack("I", f.read(4))[0]
-            annotation = struct.unpack("{}B".format(annotation_size - 8), f.read((annotation_size - 8) // 8))
+            annotation = struct.unpack("{}B".format(
+                annotation_size - 8), f.read((annotation_size - 8) // 8))
             header["Annotation"] = annotation
 
             image_size = struct.unpack("I", f.read(4))[0]
@@ -43,7 +44,8 @@ def read_frames(cine_file, start_frame=1, count=None):
     else:
         bpp = header["setup"].RealBPP
 
-    raw_images = frame_reader(cine_file, header, start_frame=start_frame, count=count)
+    raw_images = frame_reader(
+        cine_file, header, start_frame=start_frame, count=count)
 
     return raw_images, header["setup"], bpp
 
@@ -53,8 +55,10 @@ def unpack_10bit(data, width, height):
     unpacked = np.zeros([height, width], dtype="uint16")
 
     unpacked.flat[::4] = (packed[::5] << 2) | (packed[1::5] >> 6)
-    unpacked.flat[1::4] = ((packed[1::5] & 0b00111111) << 4) | (packed[2::5] >> 4)
-    unpacked.flat[2::4] = ((packed[2::5] & 0b00001111) << 6) | (packed[3::5] >> 2)
+    unpacked.flat[1::4] = ((packed[1::5] & 0b00111111)
+                           << 4) | (packed[2::5] >> 4)
+    unpacked.flat[2::4] = ((packed[2::5] & 0b00001111)
+                           << 6) | (packed[3::5] >> 2)
     unpacked.flat[3::4] = ((packed[3::5] & 0b00000011) << 8) | packed[4::5]
 
     return unpacked
@@ -66,13 +70,15 @@ def create_raw_array(data, header):
     if header["bitmapinfoheader"].biCompression:
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
-        raw_image = np.interp(raw_image, [64, 4064], [0, 2 ** 12 - 1]).astype(np.uint16)
+        raw_image = np.interp(raw_image, [64, 4064], [
+                              0, 2 ** 12 - 1]).astype(np.uint16)
     else:
         raw_image = np.frombuffer(data, dtype="uint16")
         raw_image.shape = (height, width)
         raw_image = np.flipud(raw_image)
         raw_image = np.interp(
-            raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [0, 2 ** header["setup"].RealBPP - 1]
+            raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [
+                0, 2 ** header["setup"].RealBPP - 1]
         ).astype(np.uint16)
 
     return raw_image
