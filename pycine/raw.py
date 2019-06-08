@@ -140,24 +140,11 @@ def read_frames(cine_file, start_frame=False,
     bpp : int
         Bit depth of the raw images
     """
-    if type(start_frame) == int and type(start_frame_cine) == int:
-        raise ValueError(
-            "Do not specify both of start_frame and start_frame_cine")
     header = read_header(cine_file)
     bpp = read_bpp(header)
     setup = header["setup"]
-
-    if type(start_frame) == int:
-        fetch_head = start_frame
-    if type(start_frame_cine) == int:
-        numfirst = header["cinefileheader"].FirstImageNo
-        numlast = numfirst + header["cinefileheader"].ImageCount-1
-        fetch_head = start_frame_cine - numfirst
-        if fetch_head < 0:
-            strerr = "Cannot read frame %d. This cine has only from %d to %d."
-            raise ValueError(strerr % (start_frame_cine, numfirst, numlast))
-    raw_image_generator = frame_reader(
-        cine_file, header, start_frame=fetch_head, count=count)
+    raw_image_generator = image_generator(
+        cine_file, start_frame, start_frame_cine, count)
     return raw_image_generator, setup, bpp
 
 
