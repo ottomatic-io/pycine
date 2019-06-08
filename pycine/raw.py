@@ -83,7 +83,7 @@ def read_frames(cine_file, start_frame=False,
         t2 = "Cannnot read unsaved image from cine file. "
         t3 = "This cine file has data from %d " % n1st_num
         t4 = "to %d" % (n1st_num + header["cinefileheader"].ImageCount-1)
-        assert start_frame >= 0, t1+t2+t3+t4
+        assert fetch_head >= 0, t1+t2+t3+t4
         # num_frames = [n1st_num]
     raw_image_generator = frame_reader(
         cine_file, header, start_frame=fetch_head, count=count)
