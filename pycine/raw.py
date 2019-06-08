@@ -37,17 +37,47 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
             count -= 1
 
 
-def read_frames(cine_file, start_frame=1, count=None):
+def read_frames(cine_file, start_frame=1,
+                numframeincinefile=False, count=None):
     header = read_header(cine_file)
     if header["bitmapinfoheader"].biCompression:
         bpp = 12
     else:
         bpp = header["setup"].RealBPP
-
-    raw_images = frame_reader(
+    n1st_num = header["cinefileheader"].FirstImageNo
+    if numframeincinefile:
+        start_frame -= n1st_num
+        t1 = "Got frmame number %d. " % start_frame
+        t2 = "Cannnot read unsaved image from cine file. "
+        t3 = "This cine file has data from %d " % n1st_num
+        t4 = "to %d" % (n1st_num + header["cinefileheader"].ImageCount-1)
+        assert start_frame >= 0, t1+t2+t3+t4
+        # num_frames = [n1st_num]
+    raw_image_generator = frame_reader(
         cine_file, header, start_frame=start_frame, count=count)
+    return raw_image_generator, header["setup"], bpp
 
-    return raw_images, header["setup"], bpp
+    # num_images = []
+    # raw_images = []
+
+    # for num,img in raw_image_generator:
+    #     num_images.append(num)
+    #     raw_images.append(img)
+
+    # return num_images, raw_images, header["setup"], bpp
+
+
+# def read_frames(cine_file, start_frame=1, count=None):
+#     header = read_header(cine_file)
+#     if header["bitmapinfoheader"].biCompression:
+#         bpp = 12
+#     else:
+#         bpp = header["setup"].RealBPP
+
+#     raw_images = frame_reader(
+#         cine_file, header, start_frame=start_frame, count=count)
+
+#     return raw_images, header["setup"], bpp
 
 
 def unpack_10bit(data, width, height):
