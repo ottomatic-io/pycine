@@ -59,6 +59,54 @@ def read_bpp(header):
     return bpp
 
 
+def image_generator(cine_file, start_frame=False,
+                    start_frame_cine=False, count=None):
+    """
+    Get only a generator of raw images for specified cine file.
+
+    Parameters
+    ----------
+    cine : str or file-like object
+        A string containing a path to a cine file
+    start_frame : int
+        First image in a pile of images in cine file.
+        If 0 is given, it means the first frame of the saved images
+        would be readed in this function.
+        Only start_frame or start_frame_cine should be specified.
+        If both are specified, raise ValueError.
+    start_frame_cine : int
+        First image in a pile of images in cine file.
+        This number corresponds to the frame number in
+        Phantom Camera Control (PCC) application.
+        Only start_frame or start_frame_cine should be specified.
+        If both are specified, raise ValueError.
+    count : int
+        maximum number of frames to get.
+
+    Returns
+    -------
+    raw_image_generator : generator
+        A generator for raw image
+    """
+    if type(start_frame) == int and type(start_frame_cine) == int:
+        raise ValueError(
+            "Do not specify both of start_frame and start_frame_cine")
+    header = read_header(cine_file)
+
+    if type(start_frame) == int:
+        fetch_head = start_frame
+    if type(start_frame_cine) == int:
+        numfirst = header["cinefileheader"].FirstImageNo
+        numlast = numfirst + header["cinefileheader"].ImageCount-1
+        fetch_head = start_frame_cine - numfirst
+        if fetch_head < 0:
+            strerr = "Cannot read frame %d. This cine has only from %d to %d."
+            raise ValueError(strerr % (start_frame_cine, numfirst, numlast))
+    raw_image_generator = frame_reader(
+        cine_file, header, start_frame=fetch_head, count=count)
+    return raw_image_generator
+
+
 def read_frames(cine_file, start_frame=False,
                 start_frame_cine=False, count=None):
     """
