@@ -37,6 +37,28 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
             count -= 1
 
 
+def read_bpp(header):
+    """
+    Get bit depth (bit per pixel) from header
+
+    Parameters
+    ----------
+    head : dict
+        A dictionary contains header information of the cine file
+
+    Returns
+    -------
+    bpp : int
+        Bit depth of the cine file
+    """
+
+    if header["bitmapinfoheader"].biCompression:
+        bpp = 12
+    else:
+        bpp = header["setup"].RealBPP
+    return bpp
+
+
 def read_frames(cine_file, start_frame=False,
                 start_frame_cine=False, count=None):
     """
@@ -70,10 +92,7 @@ def read_frames(cine_file, start_frame=False,
     # assert type(start_frame_cine) in [int, bool], \
     #     "Only int or bool are available as start_frame_cine"
     header = read_header(cine_file)
-    if header["bitmapinfoheader"].biCompression:
-        bpp = 12
-    else:
-        bpp = header["setup"].RealBPP
+    bpp = read_bpp(header)
     if type(start_frame) == int:
         fetch_head = start_frame
     if type(start_frame_cine) == int:
