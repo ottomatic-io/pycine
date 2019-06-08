@@ -95,8 +95,6 @@ def read_frames(cine_file, start_frame=False,
     if type(start_frame) == int and type(start_frame_cine) == int:
         raise ValueError(
             "Do not specify both of start_frame and start_frame_cine")
-    # assert type(start_frame_cine) in [int, bool], \
-    #     "Only int or bool are available as start_frame_cine"
     header = read_header(cine_file)
     bpp = read_bpp(header)
     setup = header["setup"]
@@ -110,32 +108,9 @@ def read_frames(cine_file, start_frame=False,
         if fetch_head < 0:
             strerr = "Cannot read frame %d. This cine has only from %d to %d."
             raise ValueError(strerr % (start_frame_cine, numfirst, numlast))
-        # num_frames = [numfirst]
     raw_image_generator = frame_reader(
         cine_file, header, start_frame=fetch_head, count=count)
     return raw_image_generator, setup, bpp
-
-    # num_images = []
-    # raw_images = []
-
-    # for num,img in raw_image_generator:
-    #     num_images.append(num)
-    #     raw_images.append(img)
-
-    # return num_images, raw_images, header["setup"], bpp
-
-
-# def read_frames(cine_file, start_frame=1, count=None):
-#     header = read_header(cine_file)
-#     if header["bitmapinfoheader"].biCompression:
-#         bpp = 12
-#     else:
-#         bpp = header["setup"].RealBPP
-
-#     raw_images = frame_reader(
-#         cine_file, header, start_frame=start_frame, count=count)
-
-#     return raw_images, header["setup"], bpp
 
 
 def unpack_10bit(data, width, height):
