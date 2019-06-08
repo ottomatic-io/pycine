@@ -93,18 +93,20 @@ def read_frames(cine_file, start_frame=False,
     #     "Only int or bool are available as start_frame_cine"
     header = read_header(cine_file)
     bpp = read_bpp(header)
+    setup = header["setup"]
+
     if type(start_frame) == int:
         fetch_head = start_frame
     if type(start_frame_cine) == int:
         numfirst = header["cinefileheader"].FirstImageNo
         numlast = numfirst + header["cinefileheader"].ImageCount-1
         fetch_head = start_frame_cine - numfirst
-        strerr = """Cannot read frame %d. This cine contains from %d to %d."""
-        assert fetch_head >= 0, strerr % (start_frame_cine, numfirst, numlast)
+        if fetch_head < 0:
+            strerr = "Cannot read frame %d. This cine has only from %d to %d."
+            raise ValueError(strerr % (start_frame_cine, numfirst, numlast))
         # num_frames = [numfirst]
     raw_image_generator = frame_reader(
         cine_file, header, start_frame=fetch_head, count=count)
-    setup = header["setup"]
     return raw_image_generator, setup, bpp
 
     # num_images = []
@@ -152,7 +154,7 @@ def create_raw_array(data, header):
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
         raw_image = np.interp(raw_image, [64, 4064], [
-                              0, 2 ** 12 - 1]).astype(np.uint16)
+            0, 2 ** 12 - 1]).astype(np.uint16)
     else:
         raw_image = np.frombuffer(data, dtype="uint16")
         raw_image.shape = (height, width)
