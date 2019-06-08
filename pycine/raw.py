@@ -37,24 +37,31 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
             count -= 1
 
 
-def read_frames(cine_file, start_frame=1,
-                numframeincinefile=False, count=None):
+def read_frames(cine_file, start_frame=False,
+                start_frame_cine=False, count=None):
+    if type(start_frame) == int and type(start_frame_cine) == int:
+        raise ValueError(
+            "Do not specify both of start_frame and start_frame_cine")
+    # assert type(start_frame_cine) in [int, bool], \
+    #     "Only int or bool are available as start_frame_cine"
     header = read_header(cine_file)
     if header["bitmapinfoheader"].biCompression:
         bpp = 12
     else:
         bpp = header["setup"].RealBPP
-    n1st_num = header["cinefileheader"].FirstImageNo
-    if numframeincinefile:
-        start_frame -= n1st_num
-        t1 = "Got frmame number %d. " % start_frame
+    if type(start_frame) == int:
+        fetch_head = start_frame
+    if type(start_frame_cine) == int:
+        n1st_num = header["cinefileheader"].FirstImageNo
+        fetch_head = start_frame_cine - n1st_num
+        t1 = "Got frmame number %d. " % start_frame_cine
         t2 = "Cannnot read unsaved image from cine file. "
         t3 = "This cine file has data from %d " % n1st_num
         t4 = "to %d" % (n1st_num + header["cinefileheader"].ImageCount-1)
         assert start_frame >= 0, t1+t2+t3+t4
         # num_frames = [n1st_num]
     raw_image_generator = frame_reader(
-        cine_file, header, start_frame=start_frame, count=count)
+        cine_file, header, start_frame=fetch_head, count=count)
     return raw_image_generator, header["setup"], bpp
 
     # num_images = []
