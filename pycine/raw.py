@@ -39,6 +39,31 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
 
 def read_frames(cine_file, start_frame=False,
                 start_frame_cine=False, count=None):
+    """
+    Get a generator of raw images for specified cine file.
+
+    Parameters
+    ----------
+    cine : str or file-like object
+        A string containing a path to a cine file
+    start_frame : int
+        Only start_frame or start_frame_cine should be specified.
+        If both are specified, raise ValueError.
+    start_frame_cine : int
+        Only start_frame or start_frame_cine should be specified.
+        If both are specified, raise ValueError.
+    count : int
+        maximum number of frames to get.
+
+    Returns
+    -------
+    raw_image_generator : generator
+        A generator for raw image
+    setup : pycine.cine.tagSETUP class
+        A class containes setup data of the cine file
+    bpp : int
+        Bit depth of the raw images
+    """
     if type(start_frame) == int and type(start_frame_cine) == int:
         raise ValueError(
             "Do not specify both of start_frame and start_frame_cine")
@@ -62,7 +87,8 @@ def read_frames(cine_file, start_frame=False,
         # num_frames = [n1st_num]
     raw_image_generator = frame_reader(
         cine_file, header, start_frame=fetch_head, count=count)
-    return raw_image_generator, header["setup"], bpp
+    setup = header["setup"]
+    return raw_image_generator, setup, bpp
 
     # num_images = []
     # raw_images = []
