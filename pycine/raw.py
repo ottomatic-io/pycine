@@ -68,14 +68,12 @@ def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=
         A string containing a path to a cine file
     start_frame : int
         First image in a pile of images in cine file.
-        If 0 is given, it means the first frame of the saved images
-        would be readed in this function.
+        If 0 is given, it means the first frame of the saved images would be readed in this function.
         Only start_frame or start_frame_cine should be specified.
         If both are specified, raise ValueError.
     start_frame_cine : int
         First image in a pile of images in cine file.
-        This number corresponds to the frame number in
-        Phantom Camera Control (PCC) application.
+        This number corresponds to the frame number in Phantom Camera Control (PCC) application.
         Only start_frame or start_frame_cine should be specified.
         If both are specified, raise ValueError.
     count : int
@@ -113,14 +111,12 @@ def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None
         A string containing a path to a cine file
     start_frame : int
         First image in a pile of images in cine file.
-        If 0 is given, it means the first frame of the saved images
-        would be readed in this function.
+        If 0 is given, it means the first frame of the saved images would be readed in this function.
         Only start_frame or start_frame_cine should be specified.
         If both are specified, raise ValueError.
     start_frame_cine : int
         First image in a pile of images in cine file.
-        This number corresponds to the frame number in
-        Phantom Camera Control (PCC) application.
+        This number corresponds to the frame number in Phantom Camera Control (PCC) application.
         Only start_frame or start_frame_cine should be specified.
         If both are specified, raise ValueError.
     count : int
