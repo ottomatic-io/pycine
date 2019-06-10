@@ -56,8 +56,7 @@ def ensure_minimal_software_version(header, cine_file, version=709):
         sys.exit(f"Software version of {cine_file} is too old.")
 
 
-@click.group(help="This tool allows .cine file metadata manipulation."
-             + "Use COMMAND --help for more info.")
+@click.group(help="This tool allows .cine file metadata manipulation. Use COMMAND --help for more info.")
 def cli():
     pass
 
@@ -79,19 +78,15 @@ def show(clips):
 
 # noinspection PyPep8Naming
 @cli.command(help="Copy metadata from a source clip")
-@click.option("--all_metadata", help="Copy color temperature, " +
-              "color correction and tone curve.", is_flag=True)
+@click.option("--all_metadata", help="Copy color temperature, color correction and tone curve.", is_flag=True)
 @click.option(
     "--wb",
-    help="Copy white balance and color correction." +
-    "This currently copies the whole calibration matrix as well.",
+    help="Copy white balance and color correction. This currently copies the whole calibration matrix as well.",
     is_flag=True,
 )
 @click.option("--tone", help="Copy tone curve.", is_flag=True)
 @click.argument("source", nargs=1, type=click.Path(exists=True, readable=True))
-@click.argument("destinations", nargs=-1,
-                type=click.Path(exists=True,
-                                readable=True, dir_okay=False, file_okay=True))
+@click.argument("destinations", nargs=-1, type=click.Path(exists=True, readable=True, dir_okay=False, file_okay=True))
 def copy(all_metadata, wb, tone, source, destinations):
     source_header = read_header(source)
     ensure_minimal_software_version(source_header, source, 709)
@@ -110,11 +105,8 @@ def copy(all_metadata, wb, tone, source, destinations):
 
         if tone or all_metadata:
             tone_label = source_header["setup"].ToneLabel.decode("ascii")
-            tone_points = list(source_header["setup"].fTone)[
-                : source_header["setup"].TonePoints * 2]
-            click.echo(
-                f"Tone points: {tone_label} \
-                {' '.join([str(p) for p in tone_points])}")
+            tone_points = list(source_header["setup"].fTone)[: source_header["setup"].TonePoints * 2]
+            click.echo(f"Tone points: {tone_label} {' '.join([str(p) for p in tone_points])}")
             dest_header["setup"].ToneLabel = source_header["setup"].ToneLabel
             dest_header["setup"].TonePoints = source_header["setup"].TonePoints
             dest_header["setup"].fTone = source_header["setup"].fTone
@@ -128,33 +120,23 @@ def copy(all_metadata, wb, tone, source, destinations):
 @click.option("--temp", type=float, help="Set color temperature.")
 @click.option("--cc", type=float, help="Set color correction.")
 @click.option("--record-fps", type=int, help="Set record FPS.")
-@click.option("--playback-fps", type=str,
-              help="Set playback FPS. Use 60 or 60/1.001 but not 59.94")
-@click.option("--timecode-fps", type=str,
-              help="Set timecode FPS. Use 60 or 60/1.001 but not 59.94")
+@click.option("--playback-fps", type=str, help="Set playback FPS. Use 60 or 60/1.001 but not 59.94")
+@click.option("--timecode-fps", type=str, help="Set timecode FPS. Use 60 or 60/1.001 but not 59.94")
 @click.option(
-    "--tone", type=str,
-    help='Set tone curve in the form of "[LABEL] x1 y1 x2 y2". ' +
-    'You can set up to 32 xy points.'
+    "--tone", type=str, help='Set tone curve in the form of "[LABEL] x1 y1 x2 y2". You can set up to 32 xy points.'
 )
-@click.argument("destinations", nargs=-1,
-                type=click.Path(exists=True,
-                                readable=True, dir_okay=False, file_okay=True))
+@click.argument("destinations", nargs=-1, type=click.Path(exists=True, readable=True, dir_okay=False, file_okay=True))
 def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone):
     for d in destinations:
         dest_header = read_header(d)
         ensure_minimal_software_version(dest_header, d, 709)
 
         if temp:
-            click.secho(
-                "WARNING: This does not yet change the calibration matrix.",
-                fg="red")
+            click.secho("WARNING: This does not yet change the calibration matrix.", fg="red")
             dest_header["setup"].fWBTemp = temp
 
         if cc:
-            click.secho(
-                "WARNING: This does not yet change the calibration matrix.",
-                fg="red")
+            click.secho("WARNING: This does not yet change the calibration matrix.", fg="red")
             dest_header["setup"].fWBCc = cc
 
         if tone:
@@ -186,9 +168,7 @@ def _parse_fps(fps: str) -> float:
             dividend, divisor = fps.strip().replace(" ", "").split("/")
             return float(dividend) / float(divisor)
         except ValueError:
-            click.secho(
-                "Please set drop-frame rates as a division. For example:",
-                fg="red")
+            click.secho("Please set drop-frame rates as a division. For example:",  fg="red")
             click.secho("pfs_meta set --playback-fps 60/1.001 *.cine")
             sys.exit(1)
 
