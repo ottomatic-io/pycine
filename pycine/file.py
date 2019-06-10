@@ -22,8 +22,7 @@ def read_header(cine_file):
 
         f.seek(header["cinefileheader"].OffImageOffsets)
         header["pImage"] = struct.unpack(
-            "{}q".format(header["cinefileheader"].ImageCount),
-            f.read(header["cinefileheader"].ImageCount * 8)
+            "{}q".format(header["cinefileheader"].ImageCount), f.read(header["cinefileheader"].ImageCount * 8)
         )
 
     return header
