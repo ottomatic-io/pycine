@@ -84,13 +84,15 @@ def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=
     raw_image_generator : generator
         A generator for raw image
     """
-    if type(start_frame) == int and type(start_frame_cine) == int:
-        raise ValueError("Do not specify both of start_frame and start_frame_cine")
     header = read_header(cine_file)
 
-    if type(start_frame) == int:
+    if type(start_frame) == int and type(start_frame_cine) == int:
+        raise ValueError("Do not specify both of start_frame and start_frame_cine")
+    elif start_frame == False and start_frame_cine == False:
+        fetch_head = 1
+    elif type(start_frame) == int:
         fetch_head = start_frame
-    if type(start_frame_cine) == int:
+    elif type(start_frame_cine) == int:
         numfirst = header["cinefileheader"].FirstImageNo
         numlast = numfirst + header["cinefileheader"].ImageCount-1
         fetch_head = start_frame_cine - numfirst
@@ -152,8 +154,9 @@ def unpack_10bit(data, width, height):
 
 def create_raw_array(data, header):
     width, height = header["bitmapinfoheader"].biWidth, header["bitmapinfoheader"].biHeight
-
+    print(header["bitmapinfoheader"].biCompression)
     if header["bitmapinfoheader"].biCompression:
+        print(data)
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
         raw_image = np.interp(raw_image, [64, 4064], [0, 2 ** 12 - 1]).astype(np.uint16)
