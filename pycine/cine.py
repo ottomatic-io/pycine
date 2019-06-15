@@ -35,6 +35,7 @@ bool32_t = c_int
 FRACTIONS = uint32_t
 PFRACTIONS = POINTER(uint32_t)
 
+
 # The absolute time format used in PC software is TIME64
 class tagTIME64(Structure):
     pass                       # A compact format for time 64 bits
@@ -61,6 +62,7 @@ tagTIME64._fields_ = [
     ]
 TIME64 = tagTIME64
 PTIME64 = POINTER(tagTIME64)
+
 
 # Time code according to the standard SMPTE 12M-1999
 class tagTC(Structure):
@@ -124,6 +126,7 @@ tagWBGAIN._fields_ = [
 PWBGAIN = POINTER(tagWBGAIN)
 WBGAIN = tagWBGAIN
 
+
 # Rectangle with well defined fields size
 class tagRECT(Structure):
     pass
@@ -157,7 +160,7 @@ IMFILTER = tagIMFILTER
 class tagSETUP(Structure):
     pass
 
-#*****************************************************************************#
+
 # SETUP structure - camera setup parameters
 # It started to be used in 1992 during the 16 bit compilers era;
 # the fields are arranged compact with alignment at 1 byte - this was
@@ -167,7 +170,7 @@ class tagSETUP(Structure):
 # versions but a new field was added for that information. The new field can
 # be larger or may have a different measurement unit. For example FrameRate16
 # was a 16 bit field to specify frame rate up to 65535 fps (frames per second).
-# When this was not enough anymore, a new field was added: FrameRate (32 bit 
+# When this was not enough anymore, a new field was added: FrameRate (32 bit
 # integer, able to store values up to 4 billion fps). Another example: Shutter
 # field (exposure duration) was specified initially in microseconds,
 # later the field ShutterNs was added to store the value in nanoseconds.
@@ -178,6 +181,7 @@ class tagSETUP(Structure):
 #
 # Use the definition from stdint.h with known size for the integer types
 #
+
 tagSETUP._pack_ = 1
 tagSETUP._fields_ = [
     ("FrameRate16", uint16_t),    # ---UPDF replaced by FrameRate
@@ -215,7 +219,7 @@ tagSETUP._fields_ = [
                                   # 2 dsk+SAM
                                   # 3 Data Translation DT9802
                                   # 4 Data Translation DT3010
-    ("ChOption", int16_t * 8),    # Per channel analog options; 
+    ("ChOption", int16_t * 8),    # Per channel analog options;
                                   # now:bit 0...3 analog gain (1,2,4,8)
     ("AnaGain", c_float * 8),     # User gain correction for conversion from voltage to real units , per channel
     ("AnaUnit", c_char * 6 * 8),  # Measurement unit for analog channels: max 5 chars/name ended each by a byte = 0
@@ -230,7 +234,7 @@ tagSETUP._fields_ = [
                                      # this still remained 65 bytes long each
                                      # GetShortPathName is used for the filenames
                                      # saved here
-    ("Res14", uint16_t),          # ---TBI bMainsFreq (Mains frequency: 
+    ("Res14", uint16_t),          # ---TBI bMainsFreq (Mains frequency:
                                   # TRUE = 60Hz USA, FALSE = 50Hz
                                   # Europe, for signal view in DSP)
                                   # Time board - settings for PC104 irig board
@@ -250,7 +254,7 @@ tagSETUP._fields_ = [
     ("ImHeight", uint16_t),       # Image height
     ("EDRShutter16", uint16_t),   # ---UPDF replaced by EDRShutterNs
     ("Serial", uint32_t),         # Camera serial number. For firewire cameras you
-                                  # have a translated value here: 
+                                  # have a translated value here:
                                   # factory serial + 0x58000
     ("Saturation", int32_t),      # ---UPDF replaced by float fSaturation
                                   # Color saturation adjustmment [-100, 100] neutral 0
@@ -285,7 +289,7 @@ tagSETUP._fields_ = [
                                   # high byte carries info about color/gray heads at v6 and v6.2
                                   # Masks: 0x80000000: TLgray 0x40000000: TRgray
                                   # 0x20000000: BLgray 0x10000000: BRgray
-    
+
     # Final adjustments after image processing:
     ("Bright", int32_t),          # ---UPDF replaced by fOffset
                                   # Brightness -100...100 neutral:0
@@ -299,7 +303,7 @@ tagSETUP._fields_ = [
     ("AutoExpRect", RECT),        # Rectangle for autoexposure control
     ("WBGain", WBGAIN * 4),       # Gain adjust on R,B components, for white balance, at Recording
                                   # 1.0 = do nothing,
-                                  # index 0: all image for v4,5,7... 
+                                  # index 0: all image for v4,5,7...
                                   # and TL head for v6, v6.2 (multihead)
                                   # index 1, 2, 3 : TR, BL, BR for multihead
     ("Rotate", int32_t),          # Rotate the image 0=do nothing
@@ -312,9 +316,9 @@ tagSETUP._fields_ = [
                                   # Phantom v7: 8 or 12
                                   # 14 bit cameras 8, 10, 12, 14
                                   # Pixels will be stored on 8 or 16 bit in files
-                                  # and in PC memory 
+                                  # and in PC memory
                                   # (if RealBPP>8 the storage will be on 16 bits)
-    
+
     # First degree function to convert the 16 bits pixels to 8 bit
     # (for display or file convert)
     ("Conv8Min", uint32_t),       # ---TBI
@@ -346,7 +350,7 @@ tagSETUP._fields_ = [
     ("MCPercent", c_float * 64),  # Percent of memory used for partitions
                                   # Allocated for 64 partitions, 15 used in the current cameras
                                   # End of SETUP in software version 606 (May 2004)
-    
+
     # CALIBration on Current Image (CSR, current session reference)
     ("CICalib", uint32_t),        # This cine or this stg is the result of
                                   # a current image calibration
@@ -360,7 +364,7 @@ tagSETUP._fields_ = [
     ("CalibTemp", uint32_t),      # Sensor Temperature
     ("HeadSerial", uint32_t * 4), # Head serials for ethernet multihead cameras
                                   # (v6.2) When multiple heads are saved in a file,
-                                  # the serials for existing heads are not zero 
+                                  # the serials for existing heads are not zero
                                   # When one head is saved in a file its serial is
                                   # in HeadSerial[0] and the other head serials
                                   # are 0xFFffFFff
@@ -375,13 +379,13 @@ tagSETUP._fields_ = [
                                   # End of SETUP in software version 624 (Jun 2005)
     ("Sensor", uint32_t),         # Camera sensor code
                                   # End of SETUP in software version 625 (Jul 2005)
-    
+
     # Acquisition parameters in nanosecond
     ("ShutterNs", uint32_t),      # Exposure, in nanoseconds
     ("EDRShutterNs", uint32_t),   # EDRExp, in nanoseconds
     ("FrameDelayNs", uint32_t),   # FrameDelay, in nanoseconds
                                   # End of SETUP in software version 631 (Oct 2005)
-    
+
     # Stamp outside the acquired image
     # (this increases the image size by adding a border with text information)
     ("ImPosXAcq", uint32_t),      # Acquired image horizontal offset in
@@ -411,7 +415,7 @@ tagSETUP._fields_ = [
                                         # meters, not available from Canon motorized lens
     ("LensFocalLength", c_float), # current focal length; (zoom factor)
                                   # End of SETUP in software version 691 (Jul 2010)
-    
+
     # image adjustment
     ("fOffset", c_float),         # [-1.0, 1.0], neutral 0.0;
                                   # 1.0 means shift by the maximum pixel value
