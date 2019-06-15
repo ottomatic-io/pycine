@@ -42,7 +42,7 @@ def read_bpp(header):
 
     Parameters
     ----------
-    head : dict
+    header : dict
         A dictionary contains header information of the cine file
 
     Returns
@@ -64,7 +64,7 @@ def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=
 
     Parameters
     ----------
-    cine : str or file-like object
+    cine_file : str or file-like object
         A string containing a path to a cine file
     start_frame : int
         First image in a pile of images in cine file.
@@ -108,7 +108,7 @@ def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None
 
     Parameters
     ----------
-    cine : str or file-like object
+    cine_file : str or file-like object
         A string containing a path to a cine file
     start_frame : int
         First image in a pile of images in cine file.
