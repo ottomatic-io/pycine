@@ -29,25 +29,28 @@ PTIME64 = POINTER(tagTIME64)
 
 
 class tagTC(Structure):
+    """
+    Time code according to the standard SMPTE 12M-1999
+    """
     pass
 
 
 tagTC._fields_ = [
-    ("framesU", uint8_t, 4),
-    ("framesT", uint8_t, 2),
-    ("dropFrameFlag", uint8_t, 1),
-    ("colorFrameFlag", uint8_t, 1),
-    ("secondsU", uint8_t, 4),
-    ("secondsT", uint8_t, 3),
-    ("flag1", uint8_t, 1),
-    ("minutesU", uint8_t, 4),
-    ("minutesT", uint8_t, 3),
-    ("flag2", uint8_t, 1),
-    ("hoursU", uint8_t, 4),
-    ("hoursT", uint8_t, 2),
-    ("flag3", uint8_t, 1),
-    ("flag4", uint8_t, 1),
-    ("userBitData", uint32_t),
+    ("framesU", uint8_t, 4),         # Units of frames
+    ("framesT", uint8_t, 2),         # Tens of frames
+    ("dropFrameFlag", uint8_t, 1),   # Dropframe flag
+    ("colorFrameFlag", uint8_t, 1),  # Colorframe flag
+    ("secondsU", uint8_t, 4),        # Units of seconds
+    ("secondsT", uint8_t, 3),        # Tens of seconds
+    ("flag1", uint8_t, 1),           # Flag 1
+    ("minutesU", uint8_t, 4),        # Units of minutes
+    ("minutesT", uint8_t, 3),        # Tens of minutes
+    ("flag2", uint8_t, 1),           # Flag 2
+    ("hoursU", uint8_t, 4),          # Units of hours
+    ("hoursT", uint8_t, 2),          # Tens of hours
+    ("flag3", uint8_t, 1),           # Flag 3
+    ("flag4", uint8_t, 1),           # Flag 4
+    ("userBitData", uint32_t),       # 32 user bits
 ]
 PTC = POINTER(tagTC)
 TC = tagTC
@@ -75,12 +78,22 @@ TCU = tagTCU
 
 
 class tagWBGAIN(Structure):
+    """
+    Color channels adjustment
+    intended for the White balance adjustment on color camera
+    by changing the gains of the red and blue channels
+    """
     pass
 
 
-tagWBGAIN._fields_ = [("R", c_float), ("B", c_float)]
+tagWBGAIN._fields_ = [
+    ("R", c_float),  # White balance, gain correction for red
+    ("B", c_float),  # White balance, gain correction for blue
+]
 PWBGAIN = POINTER(tagWBGAIN)
 WBGAIN = tagWBGAIN
+
+# Rectangle with well defined fields size
 
 
 class tagRECT(Structure):
@@ -102,10 +115,10 @@ class tagIMFILTER(Structure):
 
 
 tagIMFILTER._fields_ = [
-    ("dim", int32_t),
-    ("shifts", int32_t),
-    ("bias", int32_t),
-    ("Coef", int32_t * 25),
+    ("dim", int32_t),        # square kernel dimension 3,5
+    ("shifts", int32_t),     # right shifts of Coef (8 shifts means divide by 256)
+    ("bias", int32_t),       # bias to add at end
+    ("Coef", int32_t * 25),  # maximum alocation for a 5x5 filter
 ]
 PIMFILTER = POINTER(tagIMFILTER)
 IMFILTER = tagIMFILTER
@@ -114,163 +127,311 @@ IMFILTER = tagIMFILTER
 class tagSETUP(Structure):
     pass
 
-
+#*****************************************************************************#
+# SETUP structure - camera setup parameters
+# It started to be used in 1992 during the 16 bit compilers era;
+# the fields are arranged compact with alignment at 1 byte - this was
+# the compiler default at that time. New fields were added, some of them
+# replace old fields but a compatibility is maintained with the old versions.
+# ---UPDF = Updated Field. This field is maintained for compatibility with old
+# versions but a new field was added for that information. The new field can
+# be larger or may have a different measurement unit. For example FrameRate16
+# was a 16 bit field to specify frame rate up to 65535 fps (frames per second).
+# When this was not enough anymore, a new field was added: FrameRate (32 bit 
+# integer, able to store values up to 4 billion fps). Another example: Shutter
+# field (exposure duration) was specified initially in microseconds,
+# later the field ShutterNs was added to store the value in nanoseconds.
+# The UF can be considered outdated and deprecated; they are updated in the
+# Phantom libraries but the users of the SDK can ignore them.
+#
+# ---TBI - to be ignored, not used anymore
+#
+# Use the definition from stdint.h with known size for the integer types
+#
 tagSETUP._pack_ = 1
 tagSETUP._fields_ = [
-    ("FrameRate16", uint16_t),
-    ("Shutter16", uint16_t),
-    ("PostTrigger16", uint16_t),
-    ("FrameDelay16", uint16_t),
-    ("AspectRatio", uint16_t),
-    ("Res7", uint16_t),
-    ("Res8", uint16_t),
-    ("Res9", uint8_t),
-    ("Res10", uint8_t),
-    ("Res11", uint8_t),
-    ("TrigFrame", uint8_t),
-    ("Res12", uint8_t),
-    ("DescriptionOld", c_char * 121),
-    ("Mark", uint16_t),
-    ("Length", uint16_t),
-    ("Res13", uint16_t),
-    ("SigOption", uint16_t),
-    ("BinChannels", int16_t),
-    ("SamplesPerImage", uint8_t),
-    ("BinName", c_char * 11 * 8),
-    ("AnaOption", uint16_t),
-    ("AnaChannels", int16_t),
-    ("Res6", uint8_t),
-    ("AnaBoard", uint8_t),
-    ("ChOption", int16_t * 8),
-    ("AnaGain", c_float * 8),
-    ("AnaUnit", c_char * 6 * 8),
-    ("AnaName", c_char * 11 * 8),
-    ("lFirstImage", int32_t),
-    ("dwImageCount", uint32_t),
-    ("nQFactor", int16_t),
-    ("wCineFileType", uint16_t),
-    ("szCinePath", c_char * 65 * 4),
-    ("Res14", uint16_t),
-    ("Res15", uint8_t),
-    ("Res16", uint8_t),
-    ("Res17", uint16_t),
-    ("Res18", c_double),
-    ("Res19", c_double),
-    ("Res20", uint16_t),
-    ("Res1", int32_t),
-    ("Res2", int32_t),
-    ("Res3", int32_t),
-    ("ImWidth", uint16_t),
-    ("ImHeight", uint16_t),
-    ("EDRShutter16", uint16_t),
-    ("Serial", uint32_t),
-    ("Saturation", int32_t),
-    ("Res5", uint8_t),
-    ("AutoExposure", uint32_t),
-    ("bFlipH", bool32_t),
-    ("bFlipV", bool32_t),
-    ("Grid", uint32_t),
-    ("FrameRate", uint32_t),
-    ("Shutter", uint32_t),
-    ("EDRShutter", uint32_t),
-    ("PostTrigger", uint32_t),
-    ("FrameDelay", uint32_t),
-    ("bEnableColor", bool32_t),
-    ("CameraVersion", uint32_t),
-    ("FirmwareVersion", uint32_t),
-    ("SoftwareVersion", uint32_t),
-    ("RecordingTimeZone", int32_t),
-    ("CFA", uint32_t),
-    ("Bright", int32_t),
-    ("Contrast", int32_t),
-    ("Gamma", int32_t),
-    ("Res21", uint32_t),
-    ("AutoExpLevel", uint32_t),
-    ("AutoExpSpeed", uint32_t),
-    ("AutoExpRect", RECT),
-    ("WBGain", WBGAIN * 4),
-    ("Rotate", int32_t),
-    ("WBView", WBGAIN),
-    ("RealBPP", uint32_t),
-    ("Conv8Min", uint32_t),
-    ("Conv8Max", uint32_t),
-    ("FilterCode", int32_t),
-    ("FilterParam", int32_t),
-    ("UF", IMFILTER),
-    ("BlackCalSVer", uint32_t),
-    ("WhiteCalSVer", uint32_t),
-    ("GrayCalSVer", uint32_t),
-    ("bStampTime", bool32_t),
-    ("SoundDest", uint32_t),
-    ("FRPSteps", uint32_t),
-    ("FRPImgNr", int32_t * 16),
-    ("FRPRate", uint32_t * 16),
-    ("FRPExp", uint32_t * 16),
-    ("MCCnt", int32_t),
-    ("MCPercent", c_float * 64),
-    ("CICalib", uint32_t),
-    ("CalibWidth", uint32_t),
+    ("FrameRate16", uint16_t),    # ---UPDF replaced by FrameRate
+    ("Shutter16", uint16_t),      # ---UPDF replaced by ShutterNs
+    ("PostTrigger16", uint16_t),  # ---UPDF replaced by PostTrigger
+    ("FrameDelay16", uint16_t),   # ---UPDF replaced by FrameDelayNs
+    ("AspectRatio", uint16_t),    # ---UPDF replaced by ImWidth, ImHeight
+    ("Res7", uint16_t),           # ---TBI Contrast16
+                                  # (analog controls, not available after Phantom v3)
+    ("Res8", uint16_t),           # ---TBI Bright16
+    ("Res9", uint8_t),            # ---TBI Rotate16
+    ("Res10", uint8_t),           # ---TBI TimeAnnotation (time always comes from camera )
+    ("Res11", uint8_t),           # ---TBI TrigCine (all cines are triggered)
+    ("TrigFrame", uint8_t),       # Sync imaging mode:
+                                  # 0, 1, 2 = internal, external, locktoirig
+    ("Res12", uint8_t),           # ---TBI ShutterOn (the shutter is always on)
+    ("DescriptionOld", c_char * 121),  # ---UPDF replaced by larger Description able to
+                                       # store 4k of user comments
+    ("Mark", uint16_t),           # "ST" - marker for setup file
+    ("Length", uint16_t),         # Length of the current version of setup
+    ("Res13", uint16_t),          # ---TBI Binning (binning factor)
+    ("SigOption", uint16_t),      # Global signals options:
+                                  # MAXSAMPLES = records the max possible samples
+    ("BinChannels", int16_t),     # Number of binary channels read from the
+                                  # SAM (Signal Acquisition Module)
+    ("SamplesPerImage", uint8_t), # Number of samples acquired per image, both
+                                  # binary and analog;
+    ("BinName", c_char * 11 * 8), # Names for the first 8 binary signals having
+                                  # maximum 10 chars/name; each string ended by a
+                                  # byte = 0
+    ("AnaOption", uint16_t),      # Global analog options single ended, bipolar
+    ("AnaChannels", int16_t),     # Number of analog channels used (16 bit 2's complement per channel)
+    ("Res6", uint8_t),            # ---TBI (reserved)
+    ("AnaBoard", uint8_t),        # Board type 0=none, 1=dsk (DSP system kit),
+                                  # 2 dsk+SAM
+                                  # 3 Data Translation DT9802
+                                  # 4 Data Translation DT3010
+    ("ChOption", int16_t * 8),    # Per channel analog options; 
+                                  # now:bit 0...3 analog gain (1,2,4,8)
+    ("AnaGain", c_float * 8),     # User gain correction for conversion from voltage to real units , per channel
+    ("AnaUnit", c_char * 6 * 8),  # Measurement unit for analog channels: max 5 chars/name ended each by a byte = 0
+    ("AnaName", c_char * 11 * 8), # Channel name for the first 8 analog channels:
+                                  # max 10 chars/name ended each by a byte = 0
+    ("lFirstImage", int32_t),     # Range of images for continuous recording: first image
+    ("dwImageCount", uint32_t),   # Image count for continuous recording; used also for signal recording
+    ("nQFactor", int16_t),        # Quality - for saving to compressed file at continuous recording; range 2...255
+    ("wCineFileType", uint16_t),  # Cine file type - for continuous recording
+    ("szCinePath", c_char * 65 * 4), # 4 paths to save cine files - for
+                                     # continuous recording. After upgrading to Win32
+                                     # this still remained 65 bytes long each
+                                     # GetShortPathName is used for the filenames
+                                     # saved here
+    ("Res14", uint16_t),          # ---TBI bMainsFreq (Mains frequency: 
+                                  # TRUE = 60Hz USA, FALSE = 50Hz
+                                  # Europe, for signal view in DSP)
+                                  # Time board - settings for PC104 irig board
+                                  # used in Phantom v3 not used anymore after v3
+    ("Res15", uint8_t),           # ---TBI bTimeCode; Time code: IRIG_B, NASA36, IRIG-A
+    ("Res16", uint8_t),           # ---TBI bPriority
+                                  # Time code has priority over PPS
+    ("Res17", uint16_t),          # ---TBI wLeapSecDY
+                                  # Next day of year with leap second
+    ("Res18", c_double),          # ---TBI dDelayTC Propagation delay for time code
+    ("Res19", c_double),          # ---TBI dDelayPPS Propagation delay for PPS
+    ("Res20", uint16_t),          # ---TBI GenBits
+    ("Res1", int32_t),            # ---TBI
+    ("Res2", int32_t),            # ---TBI
+    ("Res3", int32_t),            # ---TBI
+    ("ImWidth", uint16_t),        # Image dimensions in v4 and newer cameras: Width
+    ("ImHeight", uint16_t),       # Image height
+    ("EDRShutter16", uint16_t),   # ---UPDF replaced by EDRShutterNs
+    ("Serial", uint32_t),         # Camera serial number. For firewire cameras you
+                                  # have a translated value here: 
+                                  # factory serial + 0x58000
+    ("Saturation", int32_t),      # ---UPDF replaced by float fSaturation
+                                  # Color saturation adjustmment [-100, 100] neutral 0
+    ("Res5", uint8_t),            # ---TBI
+    ("AutoExposure", uint32_t),   # Autoexposure enable 0=disable, 1=lock at trigger, 3=active after trigger
+    ("bFlipH", bool32_t),         # Flips image horizontally
+    ("bFlipV", bool32_t),         # Flips image vertically;
+    ("Grid", uint32_t),           # Displays a crosshair or a grid in setup, 0=no grid, 2=cross hair, 8=grid with 8 interval
+    ("FrameRate", uint32_t),      # Frame rate in frames per seconds
+    ("Shutter", uint32_t),        # ---UPDF replaced by ShutterNs
+                                  # (here the value is in microseconds)
+    ("EDRShutter", uint32_t),     # ---UPDF replaced by EDRShutterNs
+                                  # (here the value is in microseconds)
+    ("PostTrigger", uint32_t),    # Post trigger frames, measured in frames
+    ("FrameDelay", uint32_t),     # ---UPDF replaced by FrameDelayNs
+                                  # (here the value is in microseconds)
+    ("bEnableColor", bool32_t),   # User option: when 0 forces gray images from color cameras
+    ("CameraVersion", uint32_t),  # The version of camera hardware (without decimal point). Examples of cameras produced after the
+                                  # year 2000
+                                  # Firewire: 4, 5, 6
+                                  # Ethernet: 42 43 51 7 72 73 9 91 10
+                                  # 650 (p65) 660 (hd) ....
+    ("FirmwareVersion", uint32_t),   # Firmware version
+    ("SoftwareVersion", uint32_t),   # Phantom software version
+                                     # End of SETUP in software version 551 (May 2001)
+    ("RecordingTimeZone", int32_t),  # The time zone active during the recording of the cine
+                                     # End of SETUP in software version 552 (May 2001)
+    ("CFA", uint32_t),            # Code for the Color Filter Array of the sensor
+                                  # CFA_NONE=0,(gray) CFA_VRI=1(gbrg/rggb),
+                                  # CFA_VRIV6=2(bggr/grbg), CFA_BAYER=3(gb/rg)
+                                  # CFA_BAYERFLIP=4 (rg/gb)
+                                  # high byte carries info about color/gray heads at v6 and v6.2
+                                  # Masks: 0x80000000: TLgray 0x40000000: TRgray
+                                  # 0x20000000: BLgray 0x10000000: BRgray
+    
+    # Final adjustments after image processing:
+    ("Bright", int32_t),          # ---UPDF replaced by fOffset
+                                  # Brightness -100...100 neutral:0
+    ("Contrast", int32_t),        # ---UPDF replaced by fGain
+                                  # -100...100 neutral:0
+    ("Gamma", int32_t),           # ---UPDF replaced by fGamma
+                                  # -100...100 neutral:0
+    ("Res21", uint32_t),          # ---TBI
+    ("AutoExpLevel", uint32_t),   # Level for autoexposure control
+    ("AutoExpSpeed", uint32_t),   # Speed for autoexposure control
+    ("AutoExpRect", RECT),        # Rectangle for autoexposure control
+    ("WBGain", WBGAIN * 4),       # Gain adjust on R,B components, for white balance, at Recording
+                                  # 1.0 = do nothing,
+                                  # index 0: all image for v4,5,7... 
+                                  # and TL head for v6, v6.2 (multihead)
+                                  # index 1, 2, 3 : TR, BL, BR for multihead
+    ("Rotate", int32_t),          # Rotate the image 0=do nothing
+                                  # +90=counterclockwise -90=clockwise
+                                  # End of SETUP in software version 578 (Nov 2002)
+    ("WBView", WBGAIN),           # White balance to apply on color interpolated Cines
+    ("RealBPP", uint32_t),        # Real number of bits per pixel for this cine
+                                  # 8 on 8 bit cameras
+                                  # (v3, 4, 5, 6, 42, 43, 51, 62, 72, 9)
+                                  # Phantom v7: 8 or 12
+                                  # 14 bit cameras 8, 10, 12, 14
+                                  # Pixels will be stored on 8 or 16 bit in files
+                                  # and in PC memory 
+                                  # (if RealBPP>8 the storage will be on 16 bits)
+    
+    # First degree function to convert the 16 bits pixels to 8 bit
+    # (for display or file convert)
+    ("Conv8Min", uint32_t),       # ---TBI
+                                  # Minimum value when converting to 8 bits
+    ("Conv8Max", uint32_t),       # ---UPDF replaced by fGain16_8
+                                  # Max value when converting to 8 bits
+    ("FilterCode", int32_t),      # ImageProcessing: area processing code
+    ("FilterParam", int32_t),     # ImageProcessing: optional parameter
+    ("UF", IMFILTER),             # User filter: a 3x3 or 5x5 user convolution filter
+    ("BlackCalSVer", uint32_t),   # Software Version used for Black Reference
+    ("WhiteCalSVer", uint32_t),   # Software Version used for White Calibration
+    ("GrayCalSVer", uint32_t),    # Software Version used for Gray Calibration
+    ("bStampTime", bool32_t),     # Stamp time (in continuous recording)
+                                  # 1 = absolute time, 3 = from trigger
+                                  # End of SETUP in software version 605 (Nov 2003)
+    ("SoundDest", uint32_t),      # Sound device 0: none, 1: Speaker, 2: sound board
+
+    # Frame rate profile
+    ("FRPSteps", uint32_t),       # Suplimentary steps in frame rate profile
+                                  # 0 means no frame rate profile
+    ("FRPImgNr", int32_t * 16),   # Image number where to change the rate and/or
+                                  # exposure allocated for 16 points (4 available in v7)
+    ("FRPRate", uint32_t * 16),   # New value for frame rate (fps)
+    ("FRPExp", uint32_t * 16),    # New value for exposure (nanoseconds, not implemented in cameras)
+
+    # Multicine partition
+    ("MCCnt", int32_t),           # Partition count (= cine count - 1)
+                                  # Preview cine does not need a partition
+    ("MCPercent", c_float * 64),  # Percent of memory used for partitions
+                                  # Allocated for 64 partitions, 15 used in the current cameras
+                                  # End of SETUP in software version 606 (May 2004)
+    
+    # CALIBration on Current Image (CSR, current session reference)
+    ("CICalib", uint32_t),        # This cine or this stg is the result of
+                                  # a current image calibration
+                                  # masks: 1 BlackRef, 2 WhiteCalib, 4 GrayCheck
+                                  # Last cicalib done at the acqui params:
+    ("CalibWidth", uint32_t),     # Image dimensions
     ("CalibHeight", uint32_t),
-    ("CalibRate", uint32_t),
-    ("CalibExp", uint32_t),
-    ("CalibEDR", uint32_t),
-    ("CalibTemp", uint32_t),
-    ("HeadSerial", uint32_t * 4),
-    ("RangeCode", uint32_t),
-    ("RangeSize", uint32_t),
-    ("Decimation", uint32_t),
-    ("MasterSerial", uint32_t),
-    ("Sensor", uint32_t),
-    ("ShutterNs", uint32_t),
-    ("EDRShutterNs", uint32_t),
-    ("FrameDelayNs", uint32_t),
-    ("ImPosXAcq", uint32_t),
-    ("ImPosYAcq", uint32_t),
-    ("ImWidthAcq", uint32_t),
-    ("ImHeightAcq", uint32_t),
-    ("Description", c_char * 4096),
-    ("RisingEdge", bool32_t),
-    ("FilterTime", uint32_t),
-    ("LongReady", bool32_t),
-    ("ShutterOff", bool32_t),
-    ("Res4", uint8_t * 16),
-    ("bMetaWB", bool32_t),
-    ("Hue", int32_t),
-    ("BlackLevel", int32_t),
-    ("WhiteLevel", int32_t),
-    ("LensDescription", c_char * 256),
-    ("LensAperture", c_float),
-    ("LensFocusDistance", c_float),
-    ("LensFocalLength", c_float),
-    ("fOffset", c_float),
-    ("fGain", c_float),
-    ("fSaturation", c_float),
-    ("fHue", c_float),
-    ("fGamma", c_float),
-    ("fGammaR", c_float),
+    ("CalibRate", uint32_t),      # Frame rate (frames per second)
+    ("CalibExp", uint32_t),       # Exposure duration (nanoseconds)
+    ("CalibEDR", uint32_t),       # EDR (nanoseconds)
+    ("CalibTemp", uint32_t),      # Sensor Temperature
+    ("HeadSerial", uint32_t * 4), # Head serials for ethernet multihead cameras
+                                  # (v6.2) When multiple heads are saved in a file,
+                                  # the serials for existing heads are not zero 
+                                  # When one head is saved in a file its serial is
+                                  # in HeadSerial[0] and the other head serials
+                                  # are 0xFFffFFff
+                                  # End of SETUP in software version 607 (Oct 2004)
+    ("RangeCode", uint32_t),      # Range data code: describes the range data format
+    ("RangeSize", uint32_t),      # Range data, per image size
+    ("Decimation", uint32_t),     # Factor to reduce the frame rate when sending
+                                  # the images to i3 external memory by fiber
+                                  # End of SETUP in software version 614 (Feb 2005)
+    ("MasterSerial", uint32_t),   # Master camera Serial for external sync. 0 means
+                                  # none (this camera is not a slave of another camera)
+                                  # End of SETUP in software version 624 (Jun 2005)
+    ("Sensor", uint32_t),         # Camera sensor code
+                                  # End of SETUP in software version 625 (Jul 2005)
+    
+    # Acquisition parameters in nanosecond
+    ("ShutterNs", uint32_t),      # Exposure, in nanoseconds
+    ("EDRShutterNs", uint32_t),   # EDRExp, in nanoseconds
+    ("FrameDelayNs", uint32_t),   # FrameDelay, in nanoseconds
+                                  # End of SETUP in software version 631 (Oct 2005)
+    
+    # Stamp outside the acquired image
+    # (this increases the image size by adding a border with text information)
+    ("ImPosXAcq", uint32_t),      # Acquired image horizontal offset in
+                                  # sideStamped image
+    ("ImPosYAcq", uint32_t),      # Acquired image vertical offset in sideStamped image
+    ("ImWidthAcq", uint32_t),     # Acquired image width (different value from ImWidth if sideStamped file)
+    ("ImHeightAcq", uint32_t),    # Acquired image height (different value from ImHeight if sideStamped file)
+    ("Description", c_char * 4096),  # User description or comments (enlarged to 4096 characters)
+                                     # End of SETUP in software version 637 (Jul 2006)
+    ("RisingEdge", bool32_t),     # TRUE rising, FALSE falling
+    ("FilterTime", uint32_t),     # time constant
+    ("LongReady", bool32_t),      # If TRUE the Ready is 1 from the start  to the end of recording
+                                  # (needed for signal acquisition)
+    ("ShutterOff", bool32_t),     # Shutter off - to force maximum exposure for PIV
+                                  # End of SETUP in software version 658 (Mar 2008)
+    ("Res4", uint8_t * 16),       # ---TBI
+                                  # End of SETUP in software version 663 (May 2008)
+    ("bMetaWB", bool32_t),        # pixels value does not have WB applied (or any other processing)
+    ("Hue", int32_t),             # ---UPDF replaced by float fHue
+                                  # hue corection (degrees: -180 ...180)
+                                  # End of SETUP in software version 671 (May 2009)
+    ("BlackLevel", int32_t),      # Black level in the raw pixels
+    ("WhiteLevel", int32_t),      # White level in the raw pixels
+    ("LensDescription", c_char * 256),  # text with the producer, model, focal range etc ...
+    ("LensAperture", c_float),          # aperture f number
+    ("LensFocusDistance", c_float),     # distance where the objects are in focus in
+                                        # meters, not available from Canon motorized lens
+    ("LensFocalLength", c_float), # current focal length; (zoom factor)
+                                  # End of SETUP in software version 691 (Jul 2010)
+    
+    # image adjustment
+    ("fOffset", c_float),         # [-1.0, 1.0], neutral 0.0;
+                                  # 1.0 means shift by the maximum pixel value
+    ("fGain", c_float),           # [0.0, Max], neutral 1.0;
+    ("fSaturation", c_float),     # [0.0, Max], neutral 1.0;
+    ("fHue", c_float),            # [-180.0, 180.0] neutral 0;
+                                  # degrees and fractions of degree to rotate the hue
+    ("fGamma", c_float),          # [0.0, Max], neutral 1.0; global gamma
+                                  # (or green gamma)
+    ("fGammaR", c_float),         # per component gammma (to be added to the field Gamma)
+                                  # 0 means neutral
     ("fGammaB", c_float),
-    ("fFlare", c_float),
-    ("fPedestalR", c_float),
-    ("fPedestalG", c_float),
+    ("fFlare", c_float),          # [-1.0, 1.0], neutral 0.0;
+                                  # 1.0 means shift by the maximum pixel value
+                                  # pre White Balance offset
+    ("fPedestalR", c_float),      # [-1.0, 1.0], neutral 0.0;
+                                  # 1.0 means shift by the maximum pixel value
+    ("fPedestalG", c_float),      # after gamma offset
     ("fPedestalB", c_float),
-    ("fChroma", c_float),
+    ("fChroma", c_float),         # [0.0, Max], neutral 1.0;
+                                  # chrominance adjustment (after gamma)
     ("ToneLabel", c_char * 256),
     ("TonePoints", int32_t),
-    ("fTone", c_float * 64),
+    ("fTone", c_float * 64),      # up to 32 points + 0.0,0.0 1.0,1.0
+                                  # defining a LUT using spline curves
     ("UserMatrixLabel", c_char * 256),
     ("EnableMatrices", bool32_t),
-    ("cmUser", c_float * 9),
-    ("EnableCrop", bool32_t),
+    ("cmUser", c_float * 9),      # RGB color matrix
+    #
+    # is the name "cmUser" correct?
+    # in the Phantom Cine File Format document, this is defined as
+    # float fUserMatrix[9];
+    #
+    ("EnableCrop", bool32_t),     # The Output image will contains only a rectangle
+                                  # portion of the input image
     ("CropRect", RECT),
-    ("EnableResample", bool32_t),
+    ("EnableResample", bool32_t), # Resample image to a desired output Resolution
     ("ResampleWidth", uint32_t),
     ("ResampleHeight", uint32_t),
-    ("fGain16_8", c_float),
-    ("FRPShape", uint32_t * 16),
-    ("TrigTC", TC),
-    ("fPbRate", c_float),
-    ("fTcRate", c_float),
-    ("CineName", c_char * 256),
+    ("fGain16_8", c_float),       # Gain coefficient used when converting to 8bps
+                                  # Input pixels (bitdepth>8) are multiplied by
+                                  # the factor: fGain16_8 * (2**8 / 2**bitdepth)
+                                  # End of SETUP in software version 693 (Oct 2010)
+    ("FRPShape", uint32_t * 16),  # 0: flat, 1 ramp
+    ("TrigTC", TC),               # Trigger frame SMPTE time code and user bits
+    ("fPbRate", c_float),         # Video playback rate (fps) active when the cine was captured
+    ("fTcRate", c_float),         # Playback rate (fps) used for generating SMPTE time code
+                                  # End of SETUP in software version 701 (Apr 2011)
+    ("CineName", c_char * 256),   # Cine name
+                                  # End of SETUP in software version 702 (May 2011)
     ("fGainR", c_float),
     ("fGainG", c_float),
     ("fGainB", c_float),
