@@ -15,23 +15,42 @@ uint32_t = c_uint32
 int64_t = c_int64
 uint64_t = c_uint64
 bool32_t = c_int
+
+# A format for small intervals of time: [250 picosecond ... 1 second)
+# It is fixed point 0.32 or, in other words, the time in seconds is
+# stored multiplied by 4Gig i.e. 4294967296.0 and rounded to int.
 FRACTIONS = uint32_t
 PFRACTIONS = POINTER(uint32_t)
 
-
+# The absolute time format used in PC software is TIME64
 class tagTIME64(Structure):
-    pass
+    pass                       # A compact format for time 64 bits
+                               # fixed point (32.32 seconds)
 
 
-tagTIME64._fields_ = [("fractions", FRACTIONS), ("seconds", uint32_t)]
+tagTIME64._fields_ = [
+    ("fractions", FRACTIONS),  # Fractions of seconds
+                               # (resolution 1/4Gig i.e. cca. 1/4 ns)
+                               # The fractions of the second are stored here
+                               # multiplied by 2**32. Least significant 2 bits
+                               # store info about IRIG synchronization
+                               # bit0 = 0 IRIG synchronized
+                               # bit0 = 1 not synchronized
+                               # bit1 = 0 Event input=0 (short to ground)
+                               # bit1 = 1 Event input=1 (open)
+    ("seconds", uint32_t),     # Seconds from Jan 1 1970, compatible with the C
+                               # library routines
+                               # (max year: 2038 signed, 2106 unsigned)
+                               # VS2005 changed the default time_t to 64 bits;
+                               # here we have to maintain the 32 bits size to
+                               # remain compatible with the stored file format
+                               # and the public interfaces
+    ]
 TIME64 = tagTIME64
 PTIME64 = POINTER(tagTIME64)
 
-
+# Time code according to the standard SMPTE 12M-1999
 class tagTC(Structure):
-    """
-    Time code according to the standard SMPTE 12M-1999
-    """
     pass
 
 
@@ -56,6 +75,7 @@ PTC = POINTER(tagTC)
 TC = tagTC
 
 
+# Unpacked representation of SMPTE 12M-1999 Time Code
 class tagTCU(Structure):
     pass
 
@@ -78,11 +98,9 @@ TCU = tagTCU
 
 
 class tagWBGAIN(Structure):
-    """
-    Color channels adjustment
-    intended for the White balance adjustment on color camera
-    by changing the gains of the red and blue channels
-    """
+    # Color channels adjustment
+    # intended for the White balance adjustment on color camera
+    # by changing the gains of the red and blue channels
     pass
 
 
@@ -94,8 +112,6 @@ PWBGAIN = POINTER(tagWBGAIN)
 WBGAIN = tagWBGAIN
 
 # Rectangle with well defined fields size
-
-
 class tagRECT(Structure):
     pass
 
@@ -110,6 +126,7 @@ RECT = tagRECT
 PRECT = POINTER(tagRECT)
 
 
+# Image processing: Filtering
 class tagIMFILTER(Structure):
     pass
 
@@ -448,6 +465,8 @@ tagSETUP._fields_ = [
     ("LowestFormatQ", uint16_t),
     ("fToe", c_float),
     ("LogMode", uint32_t),
+    # VRI internal note: Size checked structure.
+    # Update oldcomp.c if new fields are added
 ]
 SETUP = tagSETUP
 PSETUP = POINTER(tagSETUP)
