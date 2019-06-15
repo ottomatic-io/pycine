@@ -93,7 +93,7 @@ def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=
         fetch_head = start_frame
     elif type(start_frame_cine) == int:
         numfirst = header["cinefileheader"].FirstImageNo
-        numlast = numfirst + header["cinefileheader"].ImageCount-1
+        numlast = numfirst + header["cinefileheader"].ImageCount - 1
         fetch_head = start_frame_cine - numfirst
         if fetch_head < 0:
             strerr = "Cannot read frame %d. This cine has only from %d to %d."
