@@ -443,12 +443,7 @@ tagSETUP._fields_ = [
                                   # defining a LUT using spline curves
     ("UserMatrixLabel", c_char * 256),
     ("EnableMatrices", bool32_t),
-    ("cmUser", c_float * 9),      # RGB color matrix
-    #
-    # is the name "cmUser" correct?
-    # in the Phantom Cine File Format document, this is defined as
-    # float fUserMatrix[9];
-    #
+    ("cmUser", c_float * 9),      # RGB color matrix (was called fUserMatrix in earlier versions of the the cine spec)
     ("EnableCrop", bool32_t),     # The Output image will contains only a rectangle
                                   # portion of the input image
     ("CropRect", RECT),
@@ -466,22 +461,36 @@ tagSETUP._fields_ = [
                                   # End of SETUP in software version 701 (Apr 2011)
     ("CineName", c_char * 256),   # Cine name
                                   # End of SETUP in software version 702 (May 2011)
-    ("fGainR", c_float),
-    ("fGainG", c_float),
+    ("fGainR", c_float),          # Per component gain - user adjustment
+    ("fGainG", c_float),          # [0.0, Max], neutral 1.0;
     ("fGainB", c_float),
-    ("cmCalib", c_float * 9),
-    ("fWBTemp", c_float),
-    ("fWBCc", c_float),
-    ("CalibrationInfo", c_char * 1024),
-    ("OpticalFilter", c_char * 1024),
-    ("GpsInfo", c_char * 1024),
-    ("Uuid", c_char * 1024),
-    ("CreatedBy", c_char * 1024),
-    ("RecBPP", uint32_t),
-    ("LowestFormatBPP", uint16_t),
-    ("LowestFormatQ", uint16_t),
-    ("fToe", c_float),
-    ("LogMode", uint32_t),
+    ("cmCalib", c_float * 9),     # RGB color calibration matrix bringing camera pixels to
+                                  # to rec 709. It includes the white balance set into
+                                  # the ph16 cameras using fWBTemp and fWBCc and the
+                                  # original factory calibration. The cine player
+                                  # should decompose this matrix in two components:
+                                  # a diagonal one with the white balance to be
+                                  # applied before interpolation and a normalized one
+                                  # to be applied after interpolation.
+    
+    ("fWBTemp", c_float),         # White balance based on color temperature and
+    ("fWBCc", c_float),           # color compensation index.
+                                  # Its effect is included in the cmCalib.
+    
+    ("CalibrationInfo", c_char * 1024), # Original calibration matrices: used to calculate cmCalib in the camera.
+    ("OpticalFilter", c_char * 1024),   # Optical filter matrix: used to calculate cmCalib in the camera.
+                                        # End of SETUP in software version 709 (September 2011).
+    ("GpsInfo", c_char * 1024),         # Current position and status info as received from a GPS receiver.
+    ("Uuid", c_char * 1024),            # Unique cine identifier
+                                        # End of SETUP in software version 719 (March 2012)
+    ("CreatedBy", c_char * 1024),       # The name of the application that created this cine
+                                        # End of SETUP in software version 720 (March 2012)
+    ("RecBPP", uint32_t),               # Acquisition bit depth. It can be 8, 10, 12 or 14
+    ("LowestFormatBPP", uint16_t),      # Description of the minimum format out of all the
+    ("LowestFormatQ", uint16_t),        # formats the images of this cine have been represented on since the moment of acquisition.
+                                        # End of SETUP in software version 731 (February 2013)    
+    ("fToe", c_float),                  # Not used - to be implemented in future versions.
+    ("LogMode", uint32_t),              # Not used - to be implemented in future versions.
     # VRI internal note: Size checked structure.
     # Update oldcomp.c if new fields are added
 ]
