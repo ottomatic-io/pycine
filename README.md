@@ -15,7 +15,7 @@ Reading Vision Research .cine files with python
 #### With pip
 If you have Python 3 installed you can just use `pip`:
 ```
-pip3 install pycine
+pip3 install -U pycine
 ```
 
 ### Development version
