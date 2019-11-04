@@ -18,13 +18,6 @@ If you have Python 3 installed you can just use `pip`:
 pip3 install pycine
 ```
 
-#### Compiled binary
-There is also a binary version you can install with the following command:
-```
-curl -s https://phantomfuse.com/pfs_meta -o /usr/local/bin/pfs_meta && chmod +x /usr/local/bin/pfs_meta
-```
-
-
 ### Development version
 
 ```
