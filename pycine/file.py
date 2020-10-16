@@ -56,27 +56,27 @@ def taggedBlock(cine_file, header):
         if not header['cinefileheader'].OffSetup + header['setup'].Length < header["cinefileheader"].OffImageOffsets:
             print('no tagged block available')
             return header
-        
+
         position = header_length + bitmapinfo_length + header['setup'].Length
         f.seek(position)
-        
+
         while position < header["cinefileheader"].OffImageOffsets:
-            
+
             blocksize = np.frombuffer(f.read(4), dtype='uint32')[0]
             tagtype = np.frombuffer(f.read(2), dtype='uint16')[0]
 
             f.seek(2, 1)    #reserved bits
-            
+
             #tagtype 1000 and 1001 are outdated
-            
+
             if tagtype == 1002:    #Time only block
                 #Every element of the array is a TIME64 structure (32.32).
                 #The time is stored only for the images saved in this file; the count of time items is ImageCount (even if you recorded in camera a larger range – TotalImageCount).
-                
+
                 temp = np.frombuffer(f.read(blocksize-8), dtype='uint32').reshape(header["cinefileheader"].ImageCount, -1)
-                
+
                 header['timestamp'] = temp[:,1] + (((2**32-1) & temp[:,0]) / (2**32))
-                
+
             elif tagtype == 1003:    #Exposure only block
                 #This block is needed because the exposure length can be different for different imges (for example when using Autoexposure).
                 #Every element of the array is a uint32_t that represents a fixed point 0.32 number.
@@ -84,7 +84,7 @@ def taggedBlock(cine_file, header):
                 #The exposures are stored only for the images saved in this file; the count of exposure items is ImageCount.
 
                 header['exposuretime'] = np.frombuffer(f.read(blocksize-8), dtype='uint32')*2**-32
-                
+
             elif tagtype == 1004:    #Range data block
                 #This block will contain information about camera orientation and distance to the subject.
                 #There are SETUP.RangeSize bytes per image and their meaning is described by SETUP.RangeCode and is customer dependent.
@@ -119,7 +119,6 @@ def write_header(cine_file, header, backup=True):
         f.write(header["bitmapinfoheader"])
         f.write(header["setup"])
 
-
 def backup_header(cine_file):
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     header = read_header(cine_file)
@@ -127,7 +126,6 @@ def backup_header(cine_file):
         f.write(header["cinefileheader"])
         f.write(header["bitmapinfoheader"])
         f.write(header["setup"])
-
 
 @contextmanager
 def open_ignoring_read_only(file_path, mode):
