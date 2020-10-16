@@ -26,11 +26,10 @@ def read_header(cine_file):
         header["pImage"] = struct.unpack(
             "{}q".format(header["cinefileheader"].ImageCount), f.read(header["cinefileheader"].ImageCount * 8)
         )
-        
+
         header = taggedBlock(cine_file, header)    #add tagged block to header dict
         
     return header
-
 
 def read_chd_header(chd_file):
     """
@@ -71,7 +70,7 @@ def taggedBlock(cine_file, header):
             #tagtype 1000 and 1001 are outdated
             
             if tagtype == 1002:    #Time only block
-                #Every element of the array is a TIME64 structure (32.32). 
+                #Every element of the array is a TIME64 structure (32.32).
                 #The time is stored only for the images saved in this file; the count of time items is ImageCount (even if you recorded in camera a larger range – TotalImageCount).
                 
                 temp = np.frombuffer(f.read(blocksize-8), dtype='uint32').reshape(header["cinefileheader"].ImageCount, -1)
@@ -79,33 +78,33 @@ def taggedBlock(cine_file, header):
                 header['timestamp'] = temp[:,1] + (((2**32-1) & temp[:,0]) / (2**32))
                 
             elif tagtype == 1003:    #Exposure only block
-                #This block is needed because the exposure length can be different for different imges (for example when using Autoexposure). 
-                #Every element of the array is a uint32_t that represents a fixed point 0.32 number. 
-                #You have to divide it by 2**32 to get the real exposure in seconds. 
+                #This block is needed because the exposure length can be different for different imges (for example when using Autoexposure).
+                #Every element of the array is a uint32_t that represents a fixed point 0.32 number.
+                #You have to divide it by 2**32 to get the real exposure in seconds.
                 #The exposures are stored only for the images saved in this file; the count of exposure items is ImageCount.
 
                 header['exposuretime'] = np.frombuffer(f.read(blocksize-8), dtype='uint32')*2**-32
                 
             elif tagtype == 1004:    #Range data block
                 #This block will contain information about camera orientation and distance to the subject.
-                #There are SETUP.RangeSize bytes per image and their meaning is described by SETUP.RangeCode and is customer dependent. 
+                #There are SETUP.RangeSize bytes per image and their meaning is described by SETUP.RangeCode and is customer dependent.
                 #The standard cine viewer should skip this block.
                 # print('tagged block type {0} not implemented'.format(tagtype))
                 f.seek(blocksize-8, 1)
             elif tagtype == 1005:    #BinSig block
-                #It stores binary signals acquired with the SAM3 module, multichannel and multisample per image. 
+                #It stores binary signals acquired with the SAM3 module, multichannel and multisample per image.
                 #The signals are stored 8 samples per byte; only for the images stored in the file.
                 #Information about the number of channels and samples per image are stored in the SETUP structure.
                 # print('tagged block type {0} not implemented'.format(tagtype))
                 f.seek(blocksize-8, 1)
             elif tagtype == 1006:    #AnaSig block
-                #It stores analog signals acquired with the SAM3 module, multichannel and multisample per image. 
+                #It stores analog signals acquired with the SAM3 module, multichannel and multisample per image.
                 #The signals are stored at 16 bit per sample; only for the images stored in the file.
                 #Information about the number of channels and samples per image are stored in the SETUP structure
                 # print('tagged block type {0} not implemented'.format(tagtype))
                 f.seek(blocksize-8, 1)
             elif tagtype ==1007:    #TimeCode block
-                #It stores the time code for every image based on the trigger time code and thetime code frequency, both read from the camera.                
+                #It stores the time code for every image based on the trigger time code and thetime code frequency, both read from the camera.
                 # print('tagged block type {0} not implemented'.format(tagtype))
                 f.seek(blocksize-8, 1)
             position += blocksize
