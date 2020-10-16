@@ -28,7 +28,7 @@ def read_header(cine_file):
         )
 
         header = taggedBlock(cine_file, header)    #add tagged block to header dict
-        
+
     return header
 
 def read_chd_header(chd_file):
