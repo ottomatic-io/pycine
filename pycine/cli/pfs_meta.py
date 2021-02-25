@@ -32,8 +32,15 @@ def show_metadata(header, cine_file):
         OpticalFilter: {header['setup'].OpticalFilter}
         cmCalib: {list(header['setup'].cmCalib)}
         Tone points: {tone_label} {' '.join([str(p) for p in tone_points])}
+        Raw image size: {header['setup'].ImWidth} x {header['setup'].ImHeight}
+        Enable crop: {bool(header['setup'].EnableCrop)}
     """
     ).strip()
+    if header["setup"].EnableCrop:
+        out += dedent(f"""
+        Crop rect: {header['setup'].CropRect.left, header['setup'].CropRect.top, header['setup'].CropRect.right, header['setup'].CropRect.bottom}
+        Cropped image size: {header['setup'].CropRect.right - header['setup'].CropRect.left + 1} x {header['setup'].CropRect.bottom - header['setup'].CropRect.top + 1}
+        """).rstrip()
     click.echo(out + "\n")
 
 
@@ -117,6 +124,7 @@ def copy(all_metadata, wb, tone, source, destinations):
 
 # noinspection PyPep8Naming
 @cli.command("set", help="Set metadata")
+@click.option("--crop", type=bool, help="Set crop.")
 @click.option("--temp", type=float, help="Set color temperature.")
 @click.option("--cc", type=float, help="Set color correction.")
 @click.option("--record-fps", type=int, help="Set record FPS.")
@@ -126,10 +134,14 @@ def copy(all_metadata, wb, tone, source, destinations):
     "--tone", type=str, help='Set tone curve in the form of "[LABEL] x1 y1 x2 y2". You can set up to 32 xy points.'
 )
 @click.argument("destinations", nargs=-1, type=click.Path(exists=True, readable=True, dir_okay=False, file_okay=True))
-def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone):
+def set_(destinations, crop, temp, cc, record_fps, playback_fps, timecode_fps, tone):
     for d in destinations:
         dest_header = read_header(d)
         ensure_minimal_software_version(dest_header, d, 709)
+
+        if isinstance(crop, bool):
+            click.secho(f"Setting crop to {crop}")
+            dest_header["setup"].EnableCrop = int(crop)
 
         if temp:
             click.secho("WARNING: This does not yet change the calibration matrix.", fg="red")
@@ -155,7 +167,7 @@ def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone):
         if timecode_fps:
             dest_header["setup"].fTcRate = _parse_fps(timecode_fps)
 
-        if any([temp, cc, record_fps, playback_fps, timecode_fps, tone]):
+        if any([isinstance(crop, bool), temp, cc, record_fps, playback_fps, timecode_fps, tone]):
             click.secho(f"Writing metadata to {d}.", fg="green")
             write_header(d, dest_header)
 
