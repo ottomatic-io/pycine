@@ -168,7 +168,7 @@ def _parse_fps(fps: str) -> float:
             dividend, divisor = fps.strip().replace(" ", "").split("/")
             return float(dividend) / float(divisor)
         except ValueError:
-            click.secho("Please set drop-frame rates as a division. For example:",  fg="red")
+            click.secho("Please set drop-frame rates as a division. For example:", fg="red")
             click.secho("pfs_meta set --playback-fps 60/1.001 *.cine")
             sys.exit(1)
 

@@ -162,27 +162,27 @@ def unpack_12bit(data, width, height):
 def create_raw_array(data, header):
     width, height = header["bitmapinfoheader"].biWidth, header["bitmapinfoheader"].biHeight
 
-    if header["bitmapinfoheader"].biCompression==0:    #uncompressed data
-        if header["bitmapinfoheader"].biBitCount==16:    #16bit
+    if header["bitmapinfoheader"].biCompression == 0:  # uncompressed data
+        if header["bitmapinfoheader"].biBitCount == 16:  # 16bit
             raw_image = np.frombuffer(data, dtype="uint16")
-        if header["bitmapinfoheader"].biBitCount==8:    #8bit
+        if header["bitmapinfoheader"].biBitCount == 8:  # 8bit
             raw_image = np.frombuffer(data, dtype="uint8")
         raw_image.shape = (height, width)
         raw_image = np.flipud(raw_image)
         raw_image = np.interp(
             raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [0, 2 ** header["setup"].RealBPP - 1]
-            ).astype(np.uint16)
+        ).astype(np.uint16)
 
-    elif header["bitmapinfoheader"].biCompression==256:    #10bit / P10 compressed
+    elif header["bitmapinfoheader"].biCompression == 256:  # 10bit / P10 compressed
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
-        #fixes black and white levels as mentioned in the file documentation, however the values 64 and 1014 do no represent the tested images properly
+        # fixes black and white levels as mentioned in the file documentation, however the values 64 and 1014 do no represent the tested images properly
         raw_image = np.interp(raw_image, [64, 4064], [0, 2 ** 12 - 1]).astype(np.uint16)
 
-    elif header["bitmapinfoheader"].biCompression==1024:    #12bit / P12L compressed
+    elif header["bitmapinfoheader"].biCompression == 1024:  # 12bit / P12L compressed
         raw_image = unpack_12bit(data, width, height)
         raw_image = np.interp(
             raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [0, 2 ** header["setup"].RealBPP - 1]
-            ).astype(np.uint16)
+        ).astype(np.uint16)
 
     return raw_image
