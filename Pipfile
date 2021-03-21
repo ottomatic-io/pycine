@@ -11,7 +11,7 @@ colorama = "*"
 pyinstaller = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"
 
 [scripts]
 build = "pyinstaller pycine/cli/pfs_meta.py --onefile"
