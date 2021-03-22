@@ -16,6 +16,7 @@ def read_header(cine_file):
         }
         f.readinto(header["cinefileheader"])
         f.readinto(header["bitmapinfoheader"])
+        f.seek(header["cinefileheader"].OffSetup)
         f.readinto(header["setup"])
 
         # header_length = ctypes.sizeof(header['cinefileheader'])
@@ -43,6 +44,7 @@ def read_chd_header(chd_file):
         }
         f.readinto(header["cinefileheader"])
         f.readinto(header["bitmapinfoheader"])
+        f.seek(header["cinefileheader"].OffSetup)
         f.readinto(header["setup"])
 
     return header
@@ -83,6 +85,7 @@ def write_header(cine_file, header, backup=True):
     with open_ignoring_read_only(cine_file, "rb+") as f:
         f.write(header["cinefileheader"])
         f.write(header["bitmapinfoheader"])
+        f.seek(header["cinefileheader"].OffSetup)
         f.write(header["setup"])
 
 def backup_header(cine_file):
@@ -91,6 +94,7 @@ def backup_header(cine_file):
     with open(cine_file + f"_metadata_backup_{now}", "xb") as f:
         f.write(header["cinefileheader"])
         f.write(header["bitmapinfoheader"])
+        f.seek(header["cinefileheader"].OffSetup)
         f.write(header["setup"])
 
 @contextmanager
