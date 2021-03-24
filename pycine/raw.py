@@ -36,27 +36,6 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
             count -= 1
 
 
-def read_bpp(header):
-    """
-    Get bit depth (bit per pixel) from header
-
-    Parameters
-    ----------
-    header : dict
-        A dictionary contains header information of the cine file
-
-    Returns
-    -------
-    bpp : int
-        Bit depth of the cine file
-    """
-    if header["bitmapinfoheader"].biCompression:
-        bpp = 12
-    else:
-        bpp = header["setup"].RealBPP
-    return bpp
-
-
 def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=None):
     """
     Get only a generator of raw images for specified cine file.
@@ -132,10 +111,9 @@ def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None
         Bit depth of the raw images
     """
     header = read_header(cine_file)
-    bpp = read_bpp(header)
     setup = header["setup"]
     raw_image_generator = image_generator(cine_file, start_frame, start_frame_cine, count)
-    return raw_image_generator, setup, bpp
+    return raw_image_generator, setup, setup.RealBPP
 
 
 def unpack_10bit(data, width, height):
@@ -176,8 +154,9 @@ def create_raw_array(data, header):
     elif header["bitmapinfoheader"].biCompression == 256:  # 10bit / P10 compressed
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
-        # fixes black and white levels as mentioned in the file documentation, however the values 64 and 1014 do no represent the tested images properly
-        raw_image = np.interp(raw_image, [64, 4064], [0, 2 ** 12 - 1]).astype(np.uint16)
+        raw_image = np.interp(
+            raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [0, 2 ** header["setup"].RealBPP - 1]
+        ).astype(np.uint16)
 
     elif header["bitmapinfoheader"].biCompression == 1024:  # 12bit / P12L compressed
         raw_image = unpack_12bit(data, width, height)
