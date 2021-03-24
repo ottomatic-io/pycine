@@ -3,6 +3,11 @@ import numpy as np
 
 
 def color_pipeline(raw, setup, bpp=12):
+    print(
+        "WARNING: The color pipeline implementation is incomplete "
+        "and will most likely not output the colors you expect!"
+    )
+
     """Order from:
     http://www.visionresearch.com/phantomzone/viewtopic.php?f=20&t=572#p3884
     """
