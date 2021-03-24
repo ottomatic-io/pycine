@@ -7,6 +7,7 @@ import numpy as np
 
 from pycine import cine
 
+
 def read_header(cine_file):
     with open(cine_file, "rb") as f:
         header = {
@@ -31,6 +32,7 @@ def read_header(cine_file):
 
     return header
 
+
 def read_chd_header(chd_file):
     """
     read the .chd header file created when Vision Research software saves the images in a file format other than .cine
@@ -49,34 +51,35 @@ def read_chd_header(chd_file):
 
     return header
 
+
 def read_tagged_block(f, header):
-    header_length = ct.sizeof(header['cinefileheader'])
-    bitmapinfo_length = ct.sizeof(header['bitmapinfoheader'])
-    if not header['cinefileheader'].OffSetup + header['setup'].Length < header["cinefileheader"].OffImageOffsets:
+    header_length = ct.sizeof(header["cinefileheader"])
+    bitmapinfo_length = ct.sizeof(header["bitmapinfoheader"])
+    if not header["cinefileheader"].OffSetup + header["setup"].Length < header["cinefileheader"].OffImageOffsets:
         return header
 
-    position = header_length + bitmapinfo_length + header['setup'].Length
+    position = header_length + bitmapinfo_length + header["setup"].Length
     f.seek(position)
 
     while position < header["cinefileheader"].OffImageOffsets:
+        blocksize = np.frombuffer(f.read(4), dtype="uint32")[0]
+        tagtype = np.frombuffer(f.read(2), dtype="uint16")[0]
 
-        blocksize = np.frombuffer(f.read(4), dtype='uint32')[0]
-        tagtype = np.frombuffer(f.read(2), dtype='uint16')[0]
+        f.seek(2, 1)  # reserved bits
 
-        f.seek(2, 1)    #reserved bits
+        if tagtype == 1002:  # Time only block
+            temp = np.frombuffer(f.read(blocksize - 8), dtype="uint32").reshape(header["cinefileheader"].ImageCount, -1)
+            header["timestamp"] = temp[:, 1] + (((2 ** 32 - 1) & temp[:, 0]) / (2 ** 32))
 
-        if tagtype == 1002:    #Time only block
-            temp = np.frombuffer(f.read(blocksize-8), dtype='uint32').reshape(header["cinefileheader"].ImageCount, -1)
-            header['timestamp'] = temp[:,1] + (((2**32-1) & temp[:,0]) / (2**32))
-
-        elif tagtype == 1003:    #Exposure only block
-            header['exposuretime'] = np.frombuffer(f.read(blocksize-8), dtype='uint32')*2**-32
+        elif tagtype == 1003:  # Exposure only block
+            header["exposuretime"] = np.frombuffer(f.read(blocksize - 8), dtype="uint32") * 2 ** -32
 
         else:
-            f.seek(blocksize-8, 1)
+            f.seek(blocksize - 8, 1)
         position += blocksize
 
     return header
+
 
 def write_header(cine_file, header, backup=True):
     if backup:
@@ -88,6 +91,7 @@ def write_header(cine_file, header, backup=True):
         f.seek(header["cinefileheader"].OffSetup)
         f.write(header["setup"])
 
+
 def backup_header(cine_file):
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     header = read_header(cine_file)
@@ -96,6 +100,7 @@ def backup_header(cine_file):
         f.write(header["bitmapinfoheader"])
         f.seek(header["cinefileheader"].OffSetup)
         f.write(header["setup"])
+
 
 @contextmanager
 def open_ignoring_read_only(file_path, mode):
