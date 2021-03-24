@@ -137,14 +137,16 @@ def unpack_12bit(data, width, height):
     return unpacked
 
 
-def create_raw_array(data, header):
+def create_raw_array(data: bytes, header) -> np.ndarray:
     width, height = header["bitmapinfoheader"].biWidth, header["bitmapinfoheader"].biHeight
 
     if header["bitmapinfoheader"].biCompression == 0:  # uncompressed data
         if header["bitmapinfoheader"].biBitCount == 16:  # 16bit
             raw_image = np.frombuffer(data, dtype="uint16")
-        if header["bitmapinfoheader"].biBitCount == 8:  # 8bit
+        elif header["bitmapinfoheader"].biBitCount == 8:  # 8bit
             raw_image = np.frombuffer(data, dtype="uint8")
+        else:
+            raise ValueError("Only 16 and 8bit frames are supported")
         raw_image.shape = (height, width)
         raw_image = np.flipud(raw_image)
         raw_image = np.interp(
@@ -163,5 +165,8 @@ def create_raw_array(data, header):
         raw_image = np.interp(
             raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [0, 2 ** header["setup"].RealBPP - 1]
         ).astype(np.uint16)
+
+    else:
+        raise ValueError("biCompression is invalid")
 
     return raw_image
