@@ -11,6 +11,9 @@ def color_pipeline(raw, setup, bpp=12):
 
     # 2. White balance the raw picture using the white balance component of cmatrix
     BayerPatterns = {3: "gbrg", 4: "rggb"}
+    if not setup.CFA in BayerPatterns:
+        # color pipeline not applicable for this setup
+        return raw
     pattern = BayerPatterns[setup.CFA]
 
     raw = whitebalance_raw(raw.astype(np.float32), setup, pattern).astype(np.uint16)
