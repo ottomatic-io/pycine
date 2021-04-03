@@ -11,9 +11,8 @@ colorama = "*"
 pyinstaller = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"
 
 [scripts]
 build = "pyinstaller pycine/cli/pfs_meta.py --onefile"
 buildraw = "pyinstaller pycine/cli/cineraw.py --onefile"
-deploy = "rsync dist/pfs_meta kamerawe@phantomfuse.com:/home/kamerawe/public_html/phantomfuse/"
