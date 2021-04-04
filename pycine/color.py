@@ -117,7 +117,6 @@ def gen_mask(pattern, c, image):
 def whitebalance_raw(raw, setup, pattern):
     cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
     whitebalance = np.diag(cmCalib)
-    whitebalance = [1.193739671606806, 1.0, 1.7885392465247287]
 
     print("WBGain: ", np.asarray(setup.WBGain))
     print("WBView: ", np.asarray(setup.WBView))
