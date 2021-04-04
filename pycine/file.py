@@ -1,19 +1,35 @@
+import ctypes as ct
 import datetime
 import os
 import struct
 from contextlib import contextmanager
-import ctypes as ct
+from io import BufferedIOBase, RawIOBase, BufferedReader
+from typing import Dict, Union, TypedDict, List, BinaryIO
+
 import numpy as np
 
 from pycine import cine
+from pycine.cine import CINEFILEHEADER, BITMAPINFOHEADER, SETUP
 
 
-def read_header(cine_file):
+class Header(TypedDict):
+    cinefileheader: cine.CINEFILEHEADER
+    bitmapinfoheader: cine.BITMAPINFOHEADER
+    setup: cine.SETUP
+    pImage: List[int]
+    timestamp: np.ndarray
+    exposuretime: np.ndarray
+
+
+def read_header(cine_file: Union[str, bytes, os.PathLike]) -> Header:
     with open(cine_file, "rb") as f:
-        header = {
+        header: Header = {
             "cinefileheader": cine.CINEFILEHEADER(),
             "bitmapinfoheader": cine.BITMAPINFOHEADER(),
             "setup": cine.SETUP(),
+            "pImage": [],
+            "timestamp": np.empty(0),
+            "exposuretime": np.empty(0),
         }
         f.readinto(header["cinefileheader"])
         f.readinto(header["bitmapinfoheader"])
@@ -25,7 +41,7 @@ def read_header(cine_file):
 
         f.seek(header["cinefileheader"].OffImageOffsets)
         header["pImage"] = struct.unpack(
-            "{}q".format(header["cinefileheader"].ImageCount), f.read(header["cinefileheader"].ImageCount * 8)
+            f"{header['cinefileheader'].ImageCount}q", f.read(header["cinefileheader"].ImageCount * 8)
         )
 
         header = read_tagged_block(f, header)
@@ -33,16 +49,18 @@ def read_header(cine_file):
     return header
 
 
-def read_chd_header(chd_file):
+def read_chd_header(chd_file: Union[str, bytes, os.PathLike]) -> Header:
     """
     read the .chd header file created when Vision Research software saves the images in a file format other than .cine
     """
-
     with open(chd_file, "rb") as f:
-        header = {
+        header: Header = {
             "cinefileheader": cine.CINEFILEHEADER(),
             "bitmapinfoheader": cine.BITMAPINFOHEADER(),
             "setup": cine.SETUP(),
+            "pImage": [],
+            "timestamp": np.empty(0),
+            "exposuretime": np.empty(0),
         }
         f.readinto(header["cinefileheader"])
         f.readinto(header["bitmapinfoheader"])
@@ -52,7 +70,7 @@ def read_chd_header(chd_file):
     return header
 
 
-def read_tagged_block(f, header):
+def read_tagged_block(f: BinaryIO, header: Header) -> Header:
     header_length = ct.sizeof(header["cinefileheader"])
     bitmapinfo_length = ct.sizeof(header["bitmapinfoheader"])
     if not header["cinefileheader"].OffSetup + header["setup"].Length < header["cinefileheader"].OffImageOffsets:
@@ -81,7 +99,11 @@ def read_tagged_block(f, header):
     return header
 
 
-def write_header(cine_file, header, backup=True):
+def write_header(
+    cine_file: Union[str, bytes, os.PathLike],
+    header: Header,
+    backup=True,
+):
     if backup:
         backup_header(cine_file)
 
@@ -92,10 +114,10 @@ def write_header(cine_file, header, backup=True):
         f.write(header["setup"])
 
 
-def backup_header(cine_file):
+def backup_header(cine_file: Union[str, bytes, os.PathLike]):
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     header = read_header(cine_file)
-    with open(cine_file + f"_metadata_backup_{now}", "xb") as f:
+    with open(str(cine_file) + f"_metadata_backup_{now}", "xb") as f:
         f.write(header["cinefileheader"])
         f.write(header["bitmapinfoheader"])
         f.seek(header["cinefileheader"].OffSetup)
@@ -103,7 +125,7 @@ def backup_header(cine_file):
 
 
 @contextmanager
-def open_ignoring_read_only(file_path, mode):
+def open_ignoring_read_only(file_path: Union[str, bytes, os.PathLike], mode: str):
     mode_before = os.stat(file_path).st_mode
     os.chmod(file_path, 0o600)
 

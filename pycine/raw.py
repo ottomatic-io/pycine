@@ -1,15 +1,23 @@
 import logging
 import struct
+from os import PathLike
+from typing import Generator, Tuple, Union, Any
 
 import numpy as np
 
-from pycine.file import read_header
+from pycine.cine import SETUP
+from pycine.file import read_header, Header
 from pycine.linLUT import linLUT
 
 logger = logging.getLogger()
 
 
-def frame_reader(cine_file, header, start_frame=1, count=None):
+def frame_reader(
+    cine_file: Union[str, bytes, PathLike],
+    header: Header,
+    start_frame: int = 1,
+    count: int = None,
+) -> Generator[np.ndarray, Any, None]:
     frame = start_frame
     if not count:
         count = header["cinefileheader"].ImageCount
@@ -17,13 +25,13 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
     with open(cine_file, "rb") as f:
         while count:
             frame_index = frame - 1
-            logger.debug("Reading frame {}".format(frame))
+            logger.debug(f"Reading frame {frame}")
 
             f.seek(header["pImage"][frame_index])
 
             annotation_size = struct.unpack("I", f.read(4))[0]
-            annotation = struct.unpack("{}B".format(annotation_size - 8), f.read((annotation_size - 8) // 8))
-            header["Annotation"] = annotation
+            annotation = struct.unpack(f"{annotation_size - 8}B", f.read((annotation_size - 8) // 8))
+            # TODO: Save annotations
 
             image_size = struct.unpack("I", f.read(4))[0]
 
@@ -36,7 +44,9 @@ def frame_reader(cine_file, header, start_frame=1, count=None):
             count -= 1
 
 
-def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=None):
+def image_generator(
+    cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None
+) -> Generator[np.ndarray, Any, None]:
     """
     Get only a generator of raw images for specified cine file.
 
@@ -46,7 +56,7 @@ def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=
         A string containing a path to a cine file
     start_frame : int
         First image in a pile of images in cine file.
-        If 0 is given, it means the first frame of the saved images would be readed in this function.
+        If 0 is given, it means the first frame of the saved images would be read in this function.
         Only start_frame or start_frame_cine should be specified.
         If both are specified, raise ValueError.
     start_frame_cine : int
@@ -63,24 +73,27 @@ def image_generator(cine_file, start_frame=False, start_frame_cine=False, count=
         A generator for raw image
     """
     header = read_header(cine_file)
-    if type(start_frame) == int and type(start_frame_cine) == int:
+    if start_frame and start_frame_cine:
         raise ValueError("Do not specify both of start_frame and start_frame_cine")
-    elif start_frame == False and start_frame_cine == False:
+    elif not start_frame and not start_frame_cine:
         fetch_head = 1
-    elif type(start_frame) == int:
+    elif start_frame:
         fetch_head = start_frame
-    elif type(start_frame_cine) == int:
-        numfirst = header["cinefileheader"].FirstImageNo
-        numlast = numfirst + header["cinefileheader"].ImageCount - 1
-        fetch_head = start_frame_cine - numfirst
+    elif start_frame_cine:
+        first_image_number = header["cinefileheader"].FirstImageNo
+        last_image_number = first_image_number + header["cinefileheader"].ImageCount - 1
+        fetch_head = start_frame_cine - first_image_number
         if fetch_head < 0:
-            strerr = "Cannot read frame %d. This cine has only from %d to %d."
-            raise ValueError(strerr % (start_frame_cine, numfirst, numlast))
+            raise ValueError(
+                f"Cannot read frame {start_frame_cine:d}. This cine has only from {first_image_number:d} to {last_image_number:d}."
+            )
     raw_image_generator = frame_reader(cine_file, header, start_frame=fetch_head, count=count)
     return raw_image_generator
 
 
-def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None):
+def read_frames(
+    cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None
+) -> Tuple[Generator[np.ndarray, Any, None], SETUP, int]:
     """
     Get a generator of raw images for specified cine file.
 
@@ -90,7 +103,7 @@ def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None
         A string containing a path to a cine file
     start_frame : int
         First image in a pile of images in cine file.
-        If 0 is given, it means the first frame of the saved images would be readed in this function.
+        If 0 is given, it means the first frame of the saved images would be read in this function.
         Only start_frame or start_frame_cine should be specified.
         If both are specified, raise ValueError.
     start_frame_cine : int
@@ -106,7 +119,7 @@ def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None
     raw_image_generator : generator
         A generator for raw image
     setup : pycine.cine.tagSETUP class
-        A class containes setup data of the cine file
+        A class contains setup data of the cine file
     bpp : int
         Bit depth of the raw images
     """
@@ -116,7 +129,7 @@ def read_frames(cine_file, start_frame=False, start_frame_cine=False, count=None
     return raw_image_generator, setup, setup.RealBPP
 
 
-def unpack_10bit(data, width, height):
+def unpack_10bit(data: bytes, width: int, height: int) -> np.ndarray:
     packed = np.frombuffer(data, dtype="uint8").astype(np.uint16)
     unpacked = np.zeros([height, width], dtype="uint16")
 
@@ -128,7 +141,7 @@ def unpack_10bit(data, width, height):
     return unpacked
 
 
-def unpack_12bit(data, width, height):
+def unpack_12bit(data: bytes, width: int, height: int) -> np.ndarray:
     packed = np.frombuffer(data, dtype="uint8").astype(np.uint16)
     unpacked = np.zeros([height, width], dtype="uint16")
     unpacked.flat[::2] = (packed[::3] << 4) | packed[1::3] >> 4
