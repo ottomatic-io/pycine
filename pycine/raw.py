@@ -44,6 +44,28 @@ def frame_reader(
             count -= 1
 
 
+def read_bpp(header):
+    """
+    Get bit depth (bit per pixel) from header
+
+    Parameters
+    ----------
+    header : dict
+        A dictionary contains header information of the cine file
+
+    Returns
+    -------
+    bpp : int
+        Bit depth of the cine file
+    """
+    if header["bitmapinfoheader"].biCompression:
+        # After applying the linearization LUT the bit depth is 12bit
+        bpp = 12
+    else:
+        bpp = header["setup"].RealBPP
+    return bpp
+
+
 def image_generator(
     cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None
 ) -> Generator[np.ndarray, Any, None]:
@@ -124,9 +146,10 @@ def read_frames(
         Bit depth of the raw images
     """
     header = read_header(cine_file)
+    bpp = read_bpp(header)
     setup = header["setup"]
     raw_image_generator = image_generator(cine_file, start_frame, start_frame_cine, count)
-    return raw_image_generator, setup, setup.RealBPP
+    return raw_image_generator, setup, bpp
 
 
 def unpack_10bit(data: bytes, width: int, height: int) -> np.ndarray:
@@ -169,9 +192,7 @@ def create_raw_array(data: bytes, header) -> np.ndarray:
     elif header["bitmapinfoheader"].biCompression == 256:  # 10bit / P10 compressed
         raw_image = unpack_10bit(data, width, height)
         raw_image = linLUT[raw_image].astype(np.uint16)
-        raw_image = np.interp(
-            raw_image, [header["setup"].BlackLevel, header["setup"].WhiteLevel], [0, 2 ** header["setup"].RealBPP - 1]
-        ).astype(np.uint16)
+        raw_image = np.interp(raw_image, [64, 4064], [0, 2 ** 12 - 1]).astype(np.uint16)
 
     elif header["bitmapinfoheader"].biCompression == 1024:  # 12bit / P12L compressed
         raw_image = unpack_12bit(data, width, height)
