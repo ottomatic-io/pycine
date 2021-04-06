@@ -9,7 +9,7 @@ setup(
     description="This package allows handling of .cine files created by Vision Research Phantom® cameras.",
     entry_points={"console_scripts": ["pfs_meta = pycine.cli.pfs_meta:cli", "pfs_raw = pycine.cli.pfs_raw:cli"]},
     include_package_data=True,
-    install_requires=["click", "docopt", "opencv-python", "colorama"],
+    install_requires=["click", "docopt", "opencv-python", "colorama", "timecode"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     name="pycine",

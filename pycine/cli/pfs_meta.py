@@ -3,6 +3,7 @@ import sys
 from textwrap import dedent
 
 import click
+from timecode import Timecode
 
 from pycine.file import read_header, write_header
 
@@ -11,6 +12,10 @@ def show_metadata(header, cine_file):
     record_rate = header["setup"].FrameRate
     playback_rate = header["setup"].fPbRate
     timecode_rate = header["setup"].fTcRate
+    tc = header["setup"].TrigTC
+    tc = f"{tc.hoursT}{tc.hoursU}:{tc.minutesT}{tc.minutesU}:{tc.secondsT}{tc.secondsU}:{tc.framesT}{tc.framesU}"
+    tc_first_frame = Timecode(str(timecode_rate), tc)
+    tc_first_frame.add_frames(header["cinefileheader"].FirstImageNo)
     temp = header["setup"].fWBTemp
     cc = header["setup"].fWBCc
     tone_label = header["setup"].ToneLabel.decode("ascii")
@@ -26,6 +31,9 @@ def show_metadata(header, cine_file):
         Record FPS: {record_rate}
         Playback FPS: {playback_rate:.5g}
         Timecode FPS: {timecode_rate:.5g}
+        Trigger frame time code: {tc}
+        First frame time code: {tc_first_frame}
+        First frame number: {header["cinefileheader"].FirstImageNo}
         Temp: {temp}
         CC: {cc}
         CalibrationInfo: {header['setup'].CalibrationInfo}
@@ -125,8 +133,9 @@ def copy(all_metadata, wb, tone, source, destinations):
 @click.option(
     "--tone", type=str, help='Set tone curve in the form of "[LABEL] x1 y1 x2 y2". You can set up to 32 xy points.'
 )
+@click.option("--first-frame-number", type=int, help="Set first frame number.")
 @click.argument("destinations", nargs=-1, type=click.Path(exists=True, readable=True, dir_okay=False, file_okay=True))
-def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone):
+def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone, first_frame_number):
     for d in destinations:
         dest_header = read_header(d)
         ensure_minimal_software_version(dest_header, d, 709)
@@ -155,7 +164,10 @@ def set_(destinations, temp, cc, record_fps, playback_fps, timecode_fps, tone):
         if timecode_fps:
             dest_header["setup"].fTcRate = _parse_fps(timecode_fps)
 
-        if any([temp, cc, record_fps, playback_fps, timecode_fps, tone]):
+        if first_frame_number is not None:
+            dest_header["cinefileheader"].FirstImageNo = first_frame_number
+
+        if any([temp, cc, record_fps, playback_fps, timecode_fps, tone, first_frame_number is not None]):
             click.secho(f"Writing metadata to {d}.", fg="green")
             write_header(d, dest_header)
 
