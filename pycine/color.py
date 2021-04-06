@@ -15,10 +15,10 @@ def color_pipeline(raw, setup, bpp=12):
     print("fFlare: ", setup.fFlare)
 
     # 2. White balance the raw picture using the white balance component of cmatrix
+    white_balance, color_matrix = decompose_cmatrix(np.asarray(setup.cmCalib).reshape((3, 3)))
     BayerPatterns = {3: "gbrg", 4: "rggb"}
     pattern = BayerPatterns[setup.CFA]
-
-    raw = whitebalance_raw(raw.astype(np.float32), setup, pattern).astype(np.uint16)
+    raw = whitebalance_raw(raw.astype(np.float32), white_balance, pattern).astype(np.uint16)
 
     # 3. Debayer the image
     rgb_image = cv2.cvtColor(raw, cv2.COLOR_BAYER_GB2RGB)
@@ -26,48 +26,9 @@ def color_pipeline(raw, setup, bpp=12):
     # convert to float
     rgb_image = rgb_image.astype(np.float32) / (2 ** bpp - 1)
 
-    # return rgb_image
-
     # 4. Apply the color correction matrix component of cmatrix
-    #
-    # From the documentation:
-    # ...should decompose this
-    # matrix in two components: a diagonal one with the white balance to be
-    # applied before interpolation and a normalized one to be applied after
-    # interpolation.
-
-    cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
-
-    # normalize matrix
-    ccm = cmCalib / cmCalib.sum(axis=1)[:, np.newaxis]
-
-    # or should it be normalized this way?
-    ccm2 = cmCalib.copy()
-    ccm2[0][0] = 1 - ccm2[0][1] - ccm2[0][2]
-    ccm2[1][1] = 1 - ccm2[1][0] - ccm2[1][2]
-    ccm2[2][2] = 1 - ccm2[2][0] - ccm2[2][1]
-
-    print("cmCalib", cmCalib)
-    print("ccm: ", ccm)
-    print("ccm2", ccm2)
-
-    m = np.asarray(
-        [
-            1.4956012040024347,
-            -0.5162879962189262,
-            0.020686792216491584,
-            -0.09884672458400766,
-            0.757682383759598,
-            0.34116434082440983,
-            -0.04121405804689133,
-            -0.5527871476076358,
-            1.5940012056545272,
-        ]
-    ).reshape(3, 3)
-
-    rgb_image = np.dot(rgb_image, m.T)
-    # rgb_reshaped = rgb_image.reshape((rgb_image.shape[0] * rgb_image.shape[1], rgb_image.shape[2]))
-    # rgb_image = np.dot(m, rgb_reshaped.T).T.reshape(rgb_image.shape)
+    # FIXME: Applying the color matrix does not produce the expected results
+    # rgb_image = np.dot(rgb_image, color_matrix.T)
 
     # 5. Apply the user RGB matrix umatrix
     # cmUser = np.asarray(setup.cmUser).reshape(3, 3)
@@ -101,7 +62,7 @@ def color_pipeline(raw, setup, bpp=12):
     # 14. Rotate the Cr and Cb components around the origin in the CrCb plane by hue degrees.
     print("fHue: ", setup.fHue)
 
-    return rgb_image
+    return (rgb_image * (2 ** bpp - 1)).astype(np.uint16)
 
 
 def gen_mask(pattern, c, image):
@@ -114,26 +75,18 @@ def gen_mask(pattern, c, image):
     return np.kron(cells, color_kern(pattern, c))
 
 
-def whitebalance_raw(raw, setup, pattern):
-    cmCalib = np.asarray(setup.cmCalib).reshape(3, 3)
-    whitebalance = np.diag(cmCalib)
-
-    print("WBGain: ", np.asarray(setup.WBGain))
-    print("WBView: ", np.asarray(setup.WBView))
-    print("fWBTemp: ", setup.fWBTemp)
-    print("fWBCc: ", setup.fWBCc)
-    print("cmCalib: ", cmCalib)
-    print("whitebalance: ", whitebalance)
+def whitebalance_raw(raw, whitebalance, pattern):
+    whitebalance = whitebalance.diagonal()
 
     # FIXME: maybe use .copy()
     wb_raw = np.ma.MaskedArray(raw)
 
     wb_raw.mask = gen_mask(pattern, "r", wb_raw)
-    wb_raw *= whitebalance[0]
+    wb_raw *= whitebalance[0] / whitebalance[1]
     wb_raw.mask = gen_mask(pattern, "g", wb_raw)
     wb_raw *= whitebalance[1]
     wb_raw.mask = gen_mask(pattern, "b", wb_raw)
-    wb_raw *= whitebalance[2]
+    wb_raw *= whitebalance[2] / whitebalance[1]
 
     wb_raw.mask = np.ma.nomask
 
@@ -157,3 +110,28 @@ def resize(rgb_image, new_width):
     res = cv2.resize(rgb_image, (new_width, new_height))
 
     return res
+
+
+def decompose_cmatrix(calibration_matrix):
+    """
+    Decompose the calibration matrix into a diagonal one with the white balance
+    and a normalized color matrix.
+    """
+    iwb = np.linalg.inv(calibration_matrix).dot(np.ones(3))
+    iwb /= iwb.max()
+
+    white_balance = np.zeros((3, 3))
+    np.fill_diagonal(white_balance, iwb)
+
+    color_matrix = calibration_matrix @ white_balance
+
+    diagonal = white_balance.diagonal().copy()
+    for i in range(3):
+        if iwb[i] != 0:
+            diagonal[i] = 1 / iwb[i]
+    np.fill_diagonal(white_balance, diagonal)
+
+    # Normalize
+    color_matrix /= color_matrix[0].sum()
+
+    return white_balance, color_matrix
