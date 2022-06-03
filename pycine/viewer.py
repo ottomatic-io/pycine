@@ -78,7 +78,7 @@ class Cine_viewer(QtWidgets.QMainWindow):
     def update_frame(self, frame_index, auto=False):
         for i in range(self.n_readers):
             # keep the transform when changing images
-            transform = self.image_views[i].imageItem.transform() if auto else None
+            transform = self.image_views[i].imageItem.transform() if not auto else None
             image = self.frame_readers[i][frame_index - 1]
             self.image_views[i].setImage(image, autoRange=auto, autoLevels=auto, transform=transform)
         self.slider_label.setText("Frame: {}".format(frame_index))
