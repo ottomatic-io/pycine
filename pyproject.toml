@@ -1,2 +1,8 @@
 [tool.black]
 line-length = 120
+exclude = '''
+/(
+    pycine/cine.py
+  | pycine/linLUT.py
+)
+'''
