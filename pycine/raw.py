@@ -12,36 +12,104 @@ from pycine.linLUT import linLUT
 logger = logging.getLogger()
 
 
+class Frame_reader:
+    def __init__(self, cine_file, header=None, start_index=0, count=None, post_processing=None):
+        """
+        Create an object for reading frames from a cine file. It can either be used to get specific frames with __getitem__ or as an iterator.
+
+        Parameters
+        ----------
+        cine_file : str or file-like object
+            A string containing a path to a cine file
+        header : dict (optional)
+            A dictionary contains header information of the cine file
+        start_index : int
+            First image in a pile of images in cine file. Only used with the iterator in the object.
+        count : int
+            Maximum number of frames to get if this object is used as an iterator.
+        post_processing : function
+            Function that takes one image parameter and returns a new processed image
+            If provided this function will be applied to the raw image before returning.
+
+        Returns
+        -------
+        the created object
+        """
+        self.cine_file = cine_file
+        self.cine_file_stream = open(cine_file, "rb")
+        self.post_processing = post_processing
+
+        if header is None:
+            header = read_header(cine_file)
+        self.header = header
+
+        self.start_index = start_index
+        self.i = self.start_index
+
+        self.full_size = self.header["cinefileheader"].ImageCount
+        if not count:
+            count = self.full_size - self.start_index
+        self.end_index = self.start_index + count
+        if self.end_index > self.full_size:
+            raise ValueError("end_index {} is larger than the maximum {}".format(self.end_index, self.full_size))
+        self.size = count
+
+    def __getitem__(self, frame_index):
+        """
+        Dunder method to be able to use [] for retrieving images from the object.
+
+        Parameters
+        ----------
+        frame_index : int
+            the index for the image in cine file to retrieve.
+        """
+        f = self.cine_file_stream
+        try:
+            f.seek(self.header["pImage"][frame_index])
+        except IndexError:
+            raise IndexError(
+                "Index {} is out of bounds for cine_file with size {}.".format(frame_index, self.full_size)
+            )
+
+        annotation_size = struct.unpack("I", f.read(4))[0]
+        annotation = struct.unpack("{}B".format(annotation_size - 8), f.read((annotation_size - 8) // 8))
+        self.header["Annotation"] = annotation
+
+        image_size = struct.unpack("I", f.read(4))[0]
+        data = f.read(image_size)
+        image = create_raw_array(data, self.header)
+        if not self.post_processing is None:
+            image = self.post_processing(image)
+        return image
+
+    def __iter__(self):
+        """ Object of this class is an iterator """
+        return self
+
+    def __next__(self):
+        """ When iterating get the next image if more are left """
+        if self.i >= self.end_index:
+            raise StopIteration
+        logger.debug("Reading frame {}".format(self.i))
+        raw_image = self.__getitem__(self.i)
+        self.i += 1
+        return raw_image
+
+    def __len__(self):
+        return self.size
+
+    def __del__(self):
+        self.cine_file_stream.close()
+
+
+# def frame_reader(cine_file, header=None, start_frame=1, count=None):
 def frame_reader(
     cine_file: Union[str, bytes, PathLike],
     header: Header,
     start_frame: int = 1,
     count: int = None,
 ) -> Generator[np.ndarray, Any, None]:
-    frame = start_frame
-    if not count:
-        count = header["cinefileheader"].ImageCount
-
-    with open(cine_file, "rb") as f:
-        while count:
-            frame_index = frame - 1
-            logger.debug(f"Reading frame {frame}")
-
-            f.seek(header["pImage"][frame_index])
-
-            annotation_size = struct.unpack("I", f.read(4))[0]
-            annotation = struct.unpack(f"{annotation_size - 8}B", f.read((annotation_size - 8) // 8))
-            # TODO: Save annotations
-
-            image_size = struct.unpack("I", f.read(4))[0]
-
-            data = f.read(image_size)
-
-            raw_image = create_raw_array(data, header)
-
-            yield raw_image
-            frame += 1
-            count -= 1
+    return Frame_reader(cine_file, header, start_frame - 1, count)
 
 
 def read_bpp(header):
