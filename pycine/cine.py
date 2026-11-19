@@ -485,10 +485,10 @@ tagSETUP._fields_ = [
     ("CalibrationInfo", c_char * 1024), # Original calibration matrices: used to calculate cmCalib in the camera.
     ("OpticalFilter", c_char * 1024),   # Optical filter matrix: used to calculate cmCalib in the camera.
                                         # End of SETUP in software version 709 (September 2011).
-    ("GpsInfo", c_char * 1024),         # Current position and status info as received from a GPS receiver.
-    ("Uuid", c_char * 1024),            # Unique cine identifier
+    ("GpsInfo", c_char * 256),          # Current position and status info as received from a GPS receiver.
+    ("Uuid", c_char * 256),             # Unique cine identifier
                                         # End of SETUP in software version 719 (March 2012)
-    ("CreatedBy", c_char * 1024),       # The name of the application that created this cine
+    ("CreatedBy", c_char * 256),        # The name of the application that created this cine
                                         # End of SETUP in software version 720 (March 2012)
     ("RecBPP", uint32_t),               # Acquisition bit depth. It can be 8, 10, 12 or 14
     ("LowestFormatBPP", uint16_t),      # Description of the minimum format out of all the
@@ -497,7 +497,7 @@ tagSETUP._fields_ = [
     ("fToe", c_float),                  # Not used - to be implemented in future versions.
     ("LogMode", uint32_t),              # Not used - to be implemented in future versions.
     
-    ("CameraModel", c_char * 1024),     # Camera model string.
+    ("CameraModel", c_char * 256),      # Camera model string.
                                         # End of SETUP in software version 742
     ("WBType", uint32_t),               # For raw color cines, it describes how meta WB is stored. 
                                         # If bit 0 is set - wb is stored in WBGain field. 
