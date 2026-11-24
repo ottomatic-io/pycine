@@ -17,13 +17,14 @@ def frame_reader(
     header: Header,
     start_frame: int = 1,
     count: int = None,
+    step: int = 1,
 ) -> Generator[np.ndarray, Any, None]:
     frame = start_frame
     if not count:
         count = header["cinefileheader"].ImageCount
-
+    
     with open(cine_file, "rb") as f:
-        while count:
+        while count // step:
             frame_index = frame - 1
             logger.debug(f"Reading frame {frame}")
 
@@ -40,8 +41,8 @@ def frame_reader(
             raw_image = create_raw_array(data, header)
 
             yield raw_image
-            frame += 1
-            count -= 1
+            frame += step
+            count -= step
 
 
 def read_bpp(header):
@@ -67,7 +68,7 @@ def read_bpp(header):
 
 
 def image_generator(
-    cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None
+        cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None, step: int =1
 ) -> Generator[np.ndarray, Any, None]:
     """
     Get only a generator of raw images for specified cine file.
@@ -109,12 +110,12 @@ def image_generator(
             raise ValueError(
                 f"Cannot read frame {start_frame_cine:d}. This cine has only from {first_image_number:d} to {last_image_number:d}."
             )
-    raw_image_generator = frame_reader(cine_file, header, start_frame=fetch_head, count=count)
+    raw_image_generator = frame_reader(cine_file, header, start_frame=fetch_head, count=count, step=step)
     return raw_image_generator
 
 
 def read_frames(
-    cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None
+        cine_file: Union[str, bytes, PathLike], start_frame: int = None, start_frame_cine: int = None, count: int = None, step: int = 1
 ) -> Tuple[Generator[np.ndarray, Any, None], SETUP, int]:
     """
     Get a generator of raw images for specified cine file.
@@ -148,7 +149,7 @@ def read_frames(
     header = read_header(cine_file)
     bpp = read_bpp(header)
     setup = header["setup"]
-    raw_image_generator = image_generator(cine_file, start_frame, start_frame_cine, count)
+    raw_image_generator = image_generator(cine_file, start_frame, start_frame_cine, count, step)
     return raw_image_generator, setup, bpp
 
 
